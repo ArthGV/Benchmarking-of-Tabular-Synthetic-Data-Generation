@@ -1,0 +1,11 @@
+[
+    {
+        "name": "Residence Type",
+        "type": "finite",
+        "representation": [
+            "H",
+            "C"
+        ]
+    }
+]
+
