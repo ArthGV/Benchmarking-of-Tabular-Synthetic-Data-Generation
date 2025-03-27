@@ -1,0 +1,14 @@
+[   {
+        "name": "age",
+        "type": "Integer",
+        "representation": "number", 
+        "min": 0, "max": 90
+    },
+    
+    {
+        "name": "eye_color",
+        "type": "finite",
+        "representation": "string"
+    }
+]
+
