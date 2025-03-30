@@ -8,7 +8,11 @@
     {
         "name": "eye_color",
         "type": "finite",
-        "representation": "string"
+        "representation": [
+            "green",
+            "blue",
+            "brown"
+        ]
     }
 ]
 
