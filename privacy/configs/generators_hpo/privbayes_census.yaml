@@ -1,0 +1,80 @@
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+
+# global
+exp_root_folder: ./experiments/generators_hpo
+random_state: 42
+device: cpu
+
+# hyperparameter grid definition
+hydra:
+  sweeper:
+    direction: 
+    - maximize
+    - maximize
+    study_name: ${generator.label}_espilon_${generator.epsilon}-${hpo_objective}-${now:%Y/%m/%d}-${now:%H:%M:%S}
+    storage: sqlite:///${exp_root_folder}/generators_hpo_census.sqlite3
+    n_jobs: 1
+    n_trials: 25
+    params:
+      generator.degree: int(range(1,2))
+      generator.histogram_bins: int(range(2, 50))
+  sweep:
+    dir: ${exp_root_folder}/${generator.label}_epsilon_${generator.epsilon}/utility_large_authenticity_05
+  
+hpo_objective: ["utility_large", "authenticity"]
+privacy_weight: 0.5
+
+data:
+  label: "census"
+  folder: data # relative path
+  path: ./${data.folder}/${data.label}
+  tapas_data_processor: 
+    _target_: tools.tapas.tapas_data_processors.CensusDataProcessor
+  train_size: 0.8
+  random_state: ${random_state}
+  num_original_records_large: 45000 # 'all'
+  target_column: 'Sex'
+
+generator:
+  _target_: tapas.generators.ReprosynGenerator
+  label: PrivBayes
+  reprosyn_class: reprosyn.methods.DS_PRIVBAYES
+  histogram_bins: 10
+  degree: 1
+  epsilon: 1.0
+  random_state: ${random_state}
+
+evaluator:
+  random_state: ${random_state}
+  num_synthetic_records_large: 'all'
+  num_original_records_small: 1000
+  num_synthetic_records_small: 1000
+  n_repetitions_validation: 1 # number of iteration for bootstrap (for each seed)
+  n_repetitions_test: 100
+  n_repetitions_small: 10
+  n_val_samples_small: 200
+  n_cv_folds: 3
+  data:
+    target_column: ${data.target_column}
+  classification_optimizer:
+    random_state: ${random_state}
+    data:
+      target_column: ${data.target_column}
+    pipeline:
+      numerical_scaler: 
+        _target_: sklearn.preprocessing.StandardScaler
+      classifier:
+        _target_: xgboost.XGBClassifier
+        random_state: ${random_state}
+        eta: 0.3737311172948943
+        gamma: 1.9003263946023041
+        max_depth: 9
+        lambda: 56.546456762300274
+        alpha: 4.206976170953625
+        min_child_weight: 6.725074947394153
+        subsample: 0.6303990059483356
+        n_estimators: 53
+    eval:
+      f1_avg: 'macro'

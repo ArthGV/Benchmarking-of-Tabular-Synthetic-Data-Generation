@@ -1,0 +1,7 @@
+cqbsmodule.c
+qbs.c
+setup.py
+cqbs.egg-info/PKG-INFO
+cqbs.egg-info/SOURCES.txt
+cqbs.egg-info/dependency_links.txt
+cqbs.egg-info/top_level.txt

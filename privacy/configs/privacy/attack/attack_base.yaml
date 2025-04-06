@@ -1,0 +1,25 @@
+# metadata
+label: ???
+label_short: ???
+
+# attack setup
+device: cpu
+num_training_samples: ???
+num_testing_samples: ???
+
+attack_object: ???
+
+reports: 
+  mia:
+    metrics: ['accuracy', 'true_positive_rate', 'false_positive_rate', 'privacy_gain', 'auc']
+    num_bootstrap: 100 # None for no bootstrap
+  roc:
+    eff_epsilon: null # or float, with the eff epsilon value studied
+  
+paths:
+  metrics: summary_metrics.csv
+  summary: attack_summary.pkl
+  elapsed_time: elapsed_times.txt
+  mia_report: mia_attack_report
+  roc_report: roc_report
+  effective_epsilon_report: effective_epsilon_report

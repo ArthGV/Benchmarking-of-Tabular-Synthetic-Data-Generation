@@ -1,0 +1,29 @@
+
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tapas"
+description = "Flywheel research project"
+keywords = []
+version = "0.0.1"
+dynamic = [
+    "dependencies",
+    "readme",
+]
+
+[project.urls]
+homepage = "https://research.swisscom.ai"
+
+[tool.setuptools.packages.find]
+exclude = [
+    "makefiles*"
+    ]
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }
+readme = { file = "README.md" }

@@ -1,0 +1,20 @@
+defaults:
+  - clf_defaults
+  - _self_
+
+data:
+  label: adult
+  target_column: income
+  tapas_data_processor: 
+    _target_: tools.tapas.tapas_data_processors.AdultDataProcessor
+
+pipeline:
+  classifier:
+    eta: 0.7273798583599224
+    gamma: 1.190597224833105
+    max_depth: 3
+    lambda: 1.5199930818015779
+    alpha: 1.1966139886551352
+    min_child_weight: 7.790424738260907
+    subsample: 0.9448578289733992
+    n_estimators: 61

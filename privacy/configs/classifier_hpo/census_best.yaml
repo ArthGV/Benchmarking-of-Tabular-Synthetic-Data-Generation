@@ -1,0 +1,25 @@
+defaults:
+  - clf_defaults
+  - _self_
+
+hydra:
+  sweeper:
+    n_trials: 50
+
+data:
+  label: census
+  target_column: Sex
+  drop_duplicates: true
+  tapas_data_processor:
+    _target_: tools.tapas.tapas_data_processors.CensusDataProcessor
+
+pipeline:
+  classifier:
+    eta: 0.3737311172948943
+    gamma: 1.9003263946023041
+    max_depth: 9
+    lambda: 56.546456762300274
+    alpha: 4.206976170953625
+    min_child_weight: 6.725074947394153
+    subsample: 0.6303990059483356
+    n_estimators: 53

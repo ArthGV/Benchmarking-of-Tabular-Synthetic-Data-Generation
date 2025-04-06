@@ -1,0 +1,7 @@
+defaults:
+  - data_base
+  - _self_
+
+label: "adult"
+tapas_data_processor: 
+  _target_: tools.tapas.tapas_data_processors.AdultDataProcessor

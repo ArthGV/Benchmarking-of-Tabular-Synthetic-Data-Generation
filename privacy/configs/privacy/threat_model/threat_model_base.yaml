@@ -1,0 +1,19 @@
+# attack base configuration, to make sure that no variables are 
+# forgotten when declaring a new class
+
+abbreviation: ???
+reload: false
+reload_path: None # only necessary if reload is true
+
+data_knowledge: # AuxiliaryDataKnowledge
+  kind: ???
+
+generator_knowledge: # BlackBoxAttack
+  kind: ???
+
+attacker_goal: # TargetedMia
+  kind: ???
+
+# paths relative to the experiment folder
+paths:
+  threat_model_path: threat_model

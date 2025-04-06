@@ -1,0 +1,80 @@
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+
+# global
+exp_root_folder: ./experiments/generators_hpo
+random_state: 42
+device: cpu
+
+# hyperparameter grid definition
+hydra:
+  sweeper:
+    direction: 
+    - maximize
+    - maximize
+    study_name: ${generator.label}-${hpo_objective}-${now:%Y/%m/%d}-${now:%H:%M:%S}
+    storage: sqlite:///${exp_root_folder}/generators_hpo.sqlite3
+    n_jobs: 1 
+    n_trials: 25
+    params:
+      generator.degree: int(range(1,3))
+      generator.histogram_bins: int(range(2, 50))
+  sweep:
+    dir: ${exp_root_folder}/${generator.label}/utility_large_authenticity_05
+  
+hpo_objective: ["utility_large", "authenticity"]
+privacy_weight: 0.5
+
+data:
+  label: "adult"
+  folder: data # relative path
+  path: ./${data.folder}/${data.label}
+  tapas_data_processor: 
+    _target_: tools.tapas.tapas_data_processors.AdultDataProcessor
+    # _target_: tools.tapas.tapas_data_processors.CensusDataProcessor
+  train_size: 0.8
+  random_state: ${random_state}
+  num_original_records_large: 'all' # 'all'
+  target_column: 'income'
+
+generator:
+  _target_: tapas.generators.ReprosynGenerator
+  label: BayNet
+  reprosyn_class: reprosyn.methods.DS_BAYNET
+  histogram_bins: 10
+  degree: 1
+  random_state: ${random_state}
+
+evaluator:
+  random_state: ${random_state}
+  num_synthetic_records_large: 'all' # 'all'
+  num_original_records_small: 1000
+  num_synthetic_records_small: 1000 # 'all'
+  n_repetitions_validation: 1 # number of iteration for bootstrap (for each seed)
+  n_repetitions_test: 100
+  n_repetitions_small: 10
+  n_val_samples_small: 200
+  n_cv_folds: 3
+  data:
+    target_column: ${data.target_column}
+  classification_optimizer:
+    random_state: ${random_state}
+    data:
+      target_column: ${data.target_column}
+    pipeline:
+      numerical_scaler: 
+        _target_: sklearn.preprocessing.StandardScaler
+      classifier:
+        _target_: xgboost.XGBClassifier
+        random_state: ${random_state}
+        eta: 0.7273798583599224
+        gamma: 1.190597224833105
+        max_depth: 3
+        lambda: 1.5199930818015779
+        alpha: 1.1966139886551352
+        min_child_weight: 7.790424738260907
+        subsample: 0.9448578289733992
+        n_estimators: 61
+    eval:
+      f1_avg: 'macro'
