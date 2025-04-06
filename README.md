@@ -13,7 +13,7 @@ IMPORTANT
 
 
 ## After setting up the environment 
-After running the script you should be in the tapas-upgrade environment, from there i run: 
+After running the script go into the micromamba environment using: micromamba activate tapas-upgrade, from there i run: 
 
 - python -m ipykernel install --user --name tapas-upgrade --display-name "Python (tapas-upgrade)"
 - micromamba run -n tapas-upgrade jupyter notebook
