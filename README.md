@@ -1,7 +1,7 @@
 # Benchmarking-of-Tabular-Synthetic-Data-Generation
 ## Installation guide: 
 
-After installing micromamba, run the install_tapas_env.sh file to setup the tapas-upgrade environment and install all the packages in the correct order. 
+After installing micromamba, run the install_tapas_env.sh file to setup the tapas-upgrade environment and install all the packages in the correct order. (alternatively, you can do the installation of the packages manually like described in the readME in the privacy folder) 
 
 
 IMPORTANT
