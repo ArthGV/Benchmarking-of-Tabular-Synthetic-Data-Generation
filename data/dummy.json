@@ -1,18 +1,35 @@
 [   {
         "name": "age",
-        "type": "Integer",
+        "type": "real",
         "representation": "number", 
         "min": 0, "max": 90
     },
     
     {
-        "name": "eye_color",
-        "type": "finite",
-        "representation": [
-            "green",
-            "blue",
-            "brown"
-        ]
+        "name": "color",
+        "type": "real",
+        "representation": "number", 
+        "min": 0, "max": 90
+    },
+
+    {
+        "name": "name",
+        "type": "real",
+        "representation": "number", 
+        "min": 0, "max": 90
+    },
+
+    {
+        "name": "gender",
+        "type": "real",
+        "representation": "number", 
+        "min": 0, "max": 90
+    },
+
+    {
+        "name": "city",
+        "type": "real",
+        "representation": "number", 
+        "min": 0, "max": 90
     }
 ]
-
