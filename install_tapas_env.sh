@@ -9,13 +9,13 @@ micromamba create -n tapas-upgrade python=3.10.15 -c conda-forge
 micromamba activate tapas-upgrade
 
 # Install from specific folders (in order)
-cd ~/Desktop/colin-pelletier-develop/privacy/libs/tapas-main
+cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/tapas-main
 pip install .
 
-cd ~/Desktop/colin-pelletier-develop/privacy/libs/private-pgm-master
+cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/private-pgm-master
 pip install .
 
-cd ~/Desktop/colin-pelletier-develop/privacy/libs/reprosyn-main
+cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/reprosyn-main
 pip install .
 
 # Install general dependencies
@@ -23,13 +23,13 @@ pip install scikit-learn==1.5.2
 pip install ctgan==0.10.2
 pip install click
 
-cd ~/Desktop/colin-pelletier-develop/privacy/libs/synthcity-main
+cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/synthcity-main
 pip install .
 
 pip install --upgrade torch torchvision
 pip install --upgrade pandas==1.5.3
 
-cd ~/Desktop/colin-pelletier-develop/privacy/libs/querysnout-main/src/optimized_qbs
+cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/querysnout-main/src/optimized_qbs
 pip install .
 
 pip install --upgrade setuptools
