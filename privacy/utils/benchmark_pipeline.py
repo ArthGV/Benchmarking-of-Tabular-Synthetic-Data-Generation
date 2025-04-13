@@ -1,7 +1,9 @@
 import tapas
 import numpy as np
+from typing import Literal
 import random
-from utils.plotting import double_plot
+from utils.plotting import single_plot, double_plot
+from utils.baseline_attack import get_baseline_score
 
 
 class BenchmarkPipeline():
@@ -47,12 +49,18 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    def run(self, complexity_range, run_per_range, number_of_tests):
+    def run(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double'):
+        self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
         for i in range(len(self.generators)):
             M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests)
-            double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1))
+            if plot_style == 'single':
+                single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
+            elif plot_style == 'double':
+                double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
 
     def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int):
+        print('Generator :', self.generators[generator_ind])
+        print('Generate datasets')
         number_of_generated_shadow_datasets = complexity_range[-1]
         shadow_data_pool = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets)
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
