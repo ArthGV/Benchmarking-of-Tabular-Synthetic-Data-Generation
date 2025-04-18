@@ -16,8 +16,7 @@ dynamic = [
     "readme",
 ]
 
-[project.urls]
-homepage = "https://research.swisscom.ai"
+
 
 [tool.setuptools.packages.find]
 exclude = [
