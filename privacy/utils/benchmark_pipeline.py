@@ -3,12 +3,13 @@ import numpy as np
 from typing import Literal
 import random
 from utils.plotting import single_plot, double_plot
-from utils.baseline_attack import get_baseline_score
+from tools.baseline_attack import get_baseline_score
+import pickle
 
 
 class BenchmarkPipeline():
     def __init__(self, data, attack, generators: list[tapas.generators.Generator], target_record = None):
-
+        
         self.data = data
         self.attack = attack
         self.generators = generators
@@ -49,20 +50,31 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    def run(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double'):
+    def run(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', generate: bool = True, path: str = None):
         self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
         for i in range(len(self.generators)):
-            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests)
+            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, generate, path)
             if plot_style == 'single':
                 single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
             elif plot_style == 'double':
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
 
-    def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int):
-        print('Generator :', self.generators[generator_ind])
+    def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, generate: bool = True, path: str = None):
+        print('Generator TEST:', self.generators[generator_ind])
         print('Generate datasets')
+
+        # make sure that if generate is False, path is provided
+        if not generate and path is None:
+            raise ValueError('If generate is False, path must be provided')
+
         number_of_generated_shadow_datasets = complexity_range[-1]
-        shadow_data_pool = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets)
+        if generate:
+            shadow_data_pool, path = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets,path)
+            print('Save datasets to', path)
+        else:
+            shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], path)
+            print('Import datasets from', path)
+
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
         M_0 = []
         S_0 = []
@@ -106,9 +118,24 @@ class BenchmarkPipeline():
         shadow_datasets.extend(random.sample(shadow_dataset_pool[1], int(number_of_shadow_models / 2)))
         return shadow_datasets
     
-    def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int):
+    def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path:str=None):
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
+        print("Path:", path)
+        
+        path = path+f"shadow_datasets_{threat_model.atk_know_gen.generator}_{number_of_train_datasets}.pkl"
+        with open(path, "wb") as f:
+            pickle.dump(shadow_data, f)
+
+        shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
+        shadow_data_1 = [sd for sd in shadow_data if sd[1]]
+        shadow_data_pool = [shadow_data_0, shadow_data_1]
+        return shadow_data_pool, path
+    
+    def _import_shadow_datasets(self, threat_model, path:str):
+        with open(path, "rb") as d:
+            shadow_data = pickle.load(d)
+
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
         shadow_data_pool = [shadow_data_0, shadow_data_1]
