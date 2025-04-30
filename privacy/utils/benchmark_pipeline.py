@@ -67,7 +67,7 @@ class BenchmarkPipeline():
         for i in range(len(self.generators)):
             imported_data_path = imported_data_paths[i] if (imported_data_paths is not None) else None
             store_generated_datasets_path = store_generated_datasets_paths[i] if (store_generated_datasets_paths is not None) else None
-            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, False, imported_data_path, store_generated_datasets_path)
+            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, imported_data_path, store_generated_datasets_path)
             if plot_style == 'single':
                 single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
             elif plot_style == 'double':
@@ -82,7 +82,7 @@ class BenchmarkPipeline():
             shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], imported_data_path)
         else: #generate data
             print('Generate datasets')
-            shadow_data_pool, path = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_to_store_generated_datasets)
+            shadow_data_pool = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_to_store_generated_datasets)
 
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
         M_0 = []
@@ -133,14 +133,13 @@ class BenchmarkPipeline():
 
         if path_to_store_generated_datasets:
             print("Path:", path_to_store_generated_datasets)
-            path = path_to_store_generated_datasets+f"shadow_datasets_{threat_model.atk_know_gen.generator}_{number_of_train_datasets}.pkl"
-            with open(path, "wb") as f:
+            with open(path_to_store_generated_datasets, "wb") as f:
                 pickle.dump(shadow_data, f)
 
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
         shadow_data_pool = [shadow_data_0, shadow_data_1]
-        return shadow_data_pool, path
+        return shadow_data_pool
     
     def _import_shadow_datasets(self, threat_model, path:str):
         with open(path, "rb") as d:
