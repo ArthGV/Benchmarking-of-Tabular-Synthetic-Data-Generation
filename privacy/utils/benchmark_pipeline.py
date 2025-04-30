@@ -50,30 +50,35 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    def run(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', generate: bool = True, path: str = None):
+    def run_importing_data(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', imported_data_path: str = None):
         self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
         for i in range(len(self.generators)):
-            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, generate, path)
+            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, False, imported_data_path)
             if plot_style == 'single':
                 single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
             elif plot_style == 'double':
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
 
-    def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, generate: bool = True, path: str = None):
+    def run_generating_data(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', generated_data_path: str = None):
+        self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
+        for i in range(len(self.generators)):
+            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, True, generated_data_path)
+            if plot_style == 'single':
+                single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
+            elif plot_style == 'double':
+                double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
+
+    def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, generate: bool=True, generated_data_path: str = None):
         print('Generator TEST:', self.generators[generator_ind])
         print('Generate datasets')
 
-        # make sure that if generate is False, path is provided
-        if not generate and path is None:
-            raise ValueError('If generate is False, path must be provided')
-
         number_of_generated_shadow_datasets = complexity_range[-1]
         if generate:
-            shadow_data_pool, path = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets,path)
+            shadow_data_pool, path = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets,generated_data_path)
             print('Save datasets to', path)
         else:
-            shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], path)
-            print('Import datasets from', path)
+            shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], generated_data_path)
+            print('Import datasets from', generated_data_path)
 
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
         M_0 = []
