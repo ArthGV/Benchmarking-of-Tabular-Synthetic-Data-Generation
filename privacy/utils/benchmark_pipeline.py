@@ -59,7 +59,7 @@ class BenchmarkPipeline():
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
 
     def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int):
-        print('Generator :', self.generators[generator_ind])
+        print('--Generator :', self.generators[generator_ind],'--')
         print('Generate datasets')
         number_of_generated_shadow_datasets = complexity_range[-1]
         shadow_data_pool = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets)
