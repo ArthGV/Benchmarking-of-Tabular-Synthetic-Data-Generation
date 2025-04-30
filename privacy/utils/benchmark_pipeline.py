@@ -50,35 +50,39 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    def run_importing_data(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', imported_data_path: str = None):
+    def run(self, complexity_range: list[int], run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', imported_data_paths: list[str | None] | None = None, store_generated_datasets_paths: list[str | None] | None = None):
+        """Run the Pipeline
+
+        Args:
+            complexity_range (_type_): Range of number of shadow models to test the attacks
+            run_per_range (_type_): Number of attack per complexity point
+            number_of_tests (_type_): Number of test per attack
+            plot_style (Literal['single', 'double'], optional): _description_. Defaults to 'double'.
+            imported_data_paths (list[str  |  None] | None, optional): Put path of the data at the position corresponding to the generator to load data instead of
+            generating it, or None to generate the data. Put the all argument to None to generate data for all generators.
+            store_generated_datasets_paths (list[str  |  None] | None, optional): Put path where you want to store generated data at the position corresponding to the generator, or None not to store them. Put the all argument to None to store nothing.
+        """
+        
         self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
         for i in range(len(self.generators)):
-            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, False, imported_data_path)
+            imported_data_path = imported_data_paths[i] if (imported_data_paths is not None) else None
+            store_generated_datasets_path = store_generated_datasets_paths[i] if (store_generated_datasets_paths is not None) else None
+            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, False, imported_data_path, store_generated_datasets_path)
             if plot_style == 'single':
                 single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
             elif plot_style == 'double':
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
 
-    def run_generating_data(self, complexity_range, run_per_range, number_of_tests, plot_style: Literal['single', 'double'] = 'double', generated_data_path: str = None):
-        self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
-        for i in range(len(self.generators)):
-            M_0, S_0, M_1,S_1 = self.benchmark_one_generator(i, complexity_range, run_per_range, number_of_tests, True, generated_data_path)
-            if plot_style == 'single':
-                single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_0), np.array(S_0) + np.array(S_1), self.baseline_score)
-            elif plot_style == 'double':
-                double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
-
-    def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, generate: bool=True, generated_data_path: str = None):
+    def benchmark_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
         print('Generator TEST:', self.generators[generator_ind])
-        print('Generate datasets')
 
         number_of_generated_shadow_datasets = complexity_range[-1]
-        if generate:
-            shadow_data_pool, path = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets,generated_data_path)
-            print('Save datasets to', path)
-        else:
-            shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], generated_data_path)
-            print('Import datasets from', generated_data_path)
+        if imported_data_path: #load data
+            print('Import datasets from', imported_data_path)
+            shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], imported_data_path)
+        else: #generate data
+            print('Generate datasets')
+            shadow_data_pool, path = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_to_store_generated_datasets)
 
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
         M_0 = []
@@ -123,14 +127,15 @@ class BenchmarkPipeline():
         shadow_datasets.extend(random.sample(shadow_dataset_pool[1], int(number_of_shadow_models / 2)))
         return shadow_datasets
     
-    def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path:str=None):
+    def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str | None = None):
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
-        print("Path:", path)
-        
-        path = path+f"shadow_datasets_{threat_model.atk_know_gen.generator}_{number_of_train_datasets}.pkl"
-        with open(path, "wb") as f:
-            pickle.dump(shadow_data, f)
+
+        if path_to_store_generated_datasets:
+            print("Path:", path_to_store_generated_datasets)
+            path = path_to_store_generated_datasets+f"shadow_datasets_{threat_model.atk_know_gen.generator}_{number_of_train_datasets}.pkl"
+            with open(path, "wb") as f:
+                pickle.dump(shadow_data, f)
 
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
