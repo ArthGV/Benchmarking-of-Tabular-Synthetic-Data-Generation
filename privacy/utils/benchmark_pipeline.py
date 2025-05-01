@@ -81,16 +81,17 @@ class BenchmarkPipeline():
                                     'S_1': S_1
                                  })
             if plot_style == 'single':
-                single_plot(np.array(complexity_range), 1 - np.array(M_0) + np.array(M_1), np.array(S_0) + np.array(S_1), self.baseline_score)
+                single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
             elif plot_style == 'double':
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
             for i in range(len(self.generators)):
-                data_mean = 1 - np.array(attack_results[i]['M_0']) + np.array(attack_results[i]['M_1'])
+                data_mean = (1 - np.array(M_0) + np.array(M_1)) / 2
                 data_std = np.array(attack_results[i]['S_0']) + np.array(attack_results[i]['S_1'])
                 benchmark_rank = benchmarking_metric.compute_rank(complexity_range, data_mean, data_std, self.baseline_score[0])
-                print(f'{self.generators[i]} : {benchmark_rank}')
+                benchmark_metric = benchmarking_metric.compute_metric(complexity_range, data_mean, data_std, self.baseline_score[0])
+                print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
 
     def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
         print('Generator TEST:', self.generators[generator_ind])

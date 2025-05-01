@@ -24,7 +24,7 @@ class AUCMetric(BenchmarkMetric):
     def compute_metric(self, complexity: list[int], data_mean: list[float], data_std: list[float], baseline_score: float):
         data_mean = np.array(data_mean)
         complexity = np.array(complexity)
-        auc_score = auc(complexity, data_mean)
+        auc_score = auc(complexity, data_mean) / (complexity[-1] - complexity[0])
         return auc_score
         
     def compute_rank_from_metric(self, metric: float):
