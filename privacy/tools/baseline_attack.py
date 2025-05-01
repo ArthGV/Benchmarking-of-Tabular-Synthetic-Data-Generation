@@ -109,13 +109,3 @@ def get_baseline_score(dataset, data_point, num_bins, approx=True ):
     
     scaled_scores = [get_score(ll, train_ll) for ll in test_ll]
     return scaled_scores
-    
-
-
-    
-    
-    
-  
-
-
-    
