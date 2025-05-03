@@ -1,4 +1,6 @@
+import os
 import tapas
+import time
 import numpy as np
 from typing import Literal
 import random
@@ -9,7 +11,7 @@ import pickle
 
 
 class BenchmarkPipeline():
-    def __init__(self, data, attack, generators: list[tapas.generators.Generator], target_record = None):
+    def __init__(self, data, attack, generators: list[tapas.generators.Generator], target_record = None, size_of_datasets: int | None = None):
         
         self.data = data
         self.attack = attack
@@ -25,17 +27,17 @@ class BenchmarkPipeline():
 
         self.attacker_data, self.defender_data = self.data.create_subsets(n = 2, sample_size= int(len(self.data) / 2))
 
-        i = int(len(self.defender_data) / 5)
+        self.size_of_datasets =  size_of_datasets if size_of_datasets else int(len(self.defender_data) / 5)
 
         self.data_knowledge = tapas.threat_models.AuxiliaryDataKnowledge(
             test_data= self.defender_data,
             aux_data= self.attacker_data,
-            num_training_records= i
+            num_training_records= self.size_of_datasets
         )
         self.generator_knowledge = [
             tapas.threat_models.BlackBoxKnowledge(
                 g,
-                num_synthetic_records = i,
+                num_synthetic_records = self.size_of_datasets,
             )
             for g in self.generators
         ]
@@ -70,12 +72,13 @@ class BenchmarkPipeline():
         for i in range(len(self.generators)):
             imported_data_path = imported_data_paths[i] if (imported_data_paths is not None) else None
             store_generated_datasets_path = store_generated_datasets_paths[i] if (store_generated_datasets_paths is not None) else None
-            M_0, S_0, M_1,S_1 = self.attack_one_generator(i, complexity_range, run_per_range, number_of_tests, imported_data_path, store_generated_datasets_path)
+            M_0, S_0, M_1, S_1, gen_time = self.attack_one_generator(i, complexity_range, run_per_range, number_of_tests, imported_data_path, store_generated_datasets_path)
             attack_results.append({
                                     'M_0': M_0,
                                     'S_0': S_0,
                                     'M_1': M_1,
-                                    'S_1': S_1
+                                    'S_1': S_1,
+                                    'gen_time' : gen_time
                                  })
             if plot_style == 'single':
                 single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
@@ -90,7 +93,7 @@ class BenchmarkPipeline():
                 benchmark_rank = benchmarking_metric.compute_rank(complexity_range, data_mean, data_std, self.baseline_score[0])
                 benchmark_metric = benchmarking_metric.compute_metric(complexity_range, data_mean, data_std, self.baseline_score[0])
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
-                generators_final_data.append({"Model": self.generators[i], "Speed": 0, "Final_Score": benchmark_rank})
+                generators_final_data.append({"Model": self.generators[i], "Speed": attack_results[i]['gen_time'], "Final_Score": benchmark_rank})
             plot_generators_ranks(generators_final_data)
 
     def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
@@ -98,10 +101,10 @@ class BenchmarkPipeline():
         number_of_generated_shadow_datasets = complexity_range[-1]
         if imported_data_path: #load data
             print('Import datasets from', imported_data_path)
-            shadow_data_pool = self._import_shadow_datasets(self.threat_models[generator_ind], imported_data_path)
+            shadow_data_pool, gen_time = self._import_shadow_datasets(imported_data_path)
         else: #generate data
             print('Generate datasets')
-            shadow_data_pool = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_to_store_generated_datasets)
+            shadow_data_pool, gen_time = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_to_store_generated_datasets)
 
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
         M_0 = []
@@ -128,7 +131,7 @@ class BenchmarkPipeline():
             S_0.append(np.std(P_0))
             M_1.append(np.mean(P_1))
             S_1.append(np.std(P_1))
-        return M_0, S_0, M_1, S_1
+        return M_0, S_0, M_1, S_1, gen_time
     
     def _sample_shadow_dataset(self, shadow_dataset_pool: list[tapas.datasets.dataset.TabularDataset], number_of_shadow_models: int):
         """
@@ -141,24 +144,33 @@ class BenchmarkPipeline():
         return shadow_datasets
     
     def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str | None = None):
+        start_time = time.time()
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
+        generation_time = time.time() - start_time
+        normalized_gen_time = generation_time / (self.size_of_datasets * number_of_train_datasets)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
 
         if path_to_store_generated_datasets:
-            print("Path:", path_to_store_generated_datasets)
             with open(path_to_store_generated_datasets, "wb") as f:
-                pickle.dump(shadow_data, f)
+                data_to_save = {
+                    "shadow_data": shadow_data,
+                    "gen_time": normalized_gen_time
+                }
+                pickle.dump(data_to_save, f)
+                print(f'Generated datasest of {threat_model.atk_know_gen.generator} stored at :{path_to_store_generated_datasets}')
 
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
         shadow_data_pool = [shadow_data_0, shadow_data_1]
-        return shadow_data_pool
+        return shadow_data_pool, normalized_gen_time
     
     def _import_shadow_datasets(self, path:str):
         with open(path, "rb") as d:
-            shadow_data = pickle.load(d)
+            loaded_data = pickle.load(d)
+            shadow_data = loaded_data["shadow_data"]
+            gen_time = loaded_data["gen_time"]
 
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
         shadow_data_pool = [shadow_data_0, shadow_data_1]
-        return shadow_data_pool
+        return shadow_data_pool, gen_time
