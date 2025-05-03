@@ -121,7 +121,7 @@ def plot_generators_ranks(models, tiers_order=None, title="Model Rank List"):
 
     # Axis styling
     plt.title(title, color='black', fontsize=16)
-    plt.xlabel("Generation time [datapoint / sec]", color='black')
+    plt.xlabel("Generation time [sec / datapoint]", color='black')
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
     plt.yticks(color='black')
