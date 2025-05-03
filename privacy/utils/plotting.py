@@ -27,7 +27,7 @@ def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1:
     axes[0].set_title("Target not in DB", fontsize=16, fontweight='bold', color='darkred')
     
     # Second plot - Target in DB
-    axes[1].plot(complexity, 1 - baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[3])
+    axes[1].plot(complexity, baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[3])
     axes[1].scatter(complexity, mean_1, color=sns.color_palette("Blues")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes[1].fill_between(complexity, mean_1 - std_1, mean_1 + std_1, alpha=0.3, color=sns.color_palette("Blues")[2], label='Std Dev', zorder=2)
     axes[1].set_title("Target in DB", fontsize=16, fontweight='bold', color='darkblue')
