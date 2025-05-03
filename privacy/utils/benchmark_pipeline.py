@@ -2,7 +2,7 @@ import tapas
 import numpy as np
 from typing import Literal
 import random
-from utils.plotting import single_plot, double_plot
+from utils.plotting import single_plot, double_plot, plot_generators_ranks
 from utils.benchmark_metric import BenchmarkMetric
 from tools.baseline_attack import get_baseline_score
 import pickle
@@ -51,9 +51,6 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    #def benchmark(self, complexity_range: list[int], run_per_range, number_of_tests, benchmarking_metric: BenchmarkMetric):
-        
-
     def run(self, complexity_range: list[int], run_per_range, number_of_tests, plot_style: Literal['single', 'double'] | None = 'double', benchmarking_metric: BenchmarkMetric | None = None, imported_data_paths: list[str | None] | None = None, store_generated_datasets_paths: list[str | None] | None = None):
         """Run the Pipeline
 
@@ -86,15 +83,18 @@ class BenchmarkPipeline():
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
+            generators_final_data = []
             for i in range(len(self.generators)):
                 data_mean = (1 - np.array(M_0) + np.array(M_1)) / 2
                 data_std = np.array(attack_results[i]['S_0']) + np.array(attack_results[i]['S_1'])
                 benchmark_rank = benchmarking_metric.compute_rank(complexity_range, data_mean, data_std, self.baseline_score[0])
                 benchmark_metric = benchmarking_metric.compute_metric(complexity_range, data_mean, data_std, self.baseline_score[0])
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
+                generators_final_data.append({"Model": self.generators[i], "Speed": 0, "Final_Score": benchmark_rank})
+            plot_generators_ranks(generators_final_data)
 
     def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
-        print('Generator TEST:', self.generators[generator_ind])
+        print('Attacking :', self.generators[generator_ind])
         number_of_generated_shadow_datasets = complexity_range[-1]
         if imported_data_path: #load data
             print('Import datasets from', imported_data_path)
@@ -131,12 +131,7 @@ class BenchmarkPipeline():
         return M_0, S_0, M_1, S_1
     
     def _sample_shadow_dataset(self, shadow_dataset_pool: list[tapas.datasets.dataset.TabularDataset], number_of_shadow_models: int):
-        """_summary_
-
-        Args:
-            shadow_dataset_pool (_type_): _description_
-            number_of_shadow_models (int): _description_
-
+        """
         Returns:
             list[tapas.datasets.dataset.TabularDataset, bool]: subset of shadow_dataset_pool of lenght number_of_shadow_models such that there is the same number of dataset with/without target.
         """
@@ -159,7 +154,7 @@ class BenchmarkPipeline():
         shadow_data_pool = [shadow_data_0, shadow_data_1]
         return shadow_data_pool
     
-    def _import_shadow_datasets(self, threat_model, path:str):
+    def _import_shadow_datasets(self, path:str):
         with open(path, "rb") as d:
             shadow_data = pickle.load(d)
 

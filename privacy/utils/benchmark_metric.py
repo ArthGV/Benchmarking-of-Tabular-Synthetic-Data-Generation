@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Literal
 import numpy as np
 from sklearn.metrics import auc
 
@@ -9,13 +10,17 @@ class BenchmarkMetric(ABC):
         pass
 
     @abstractmethod
-    def compute_rank_from_metric(self, metric: float):
+    def compute_rank_from_metric(self, metric: float) -> Literal['A', 'B', 'C', 'D', 'E', 'F', 'U']:
+        """
+        Output the generator rank, A being the best, F the worst and U unassigned if the metric/rank computation can fail.
+        """
         pass
 
-    @abstractmethod
-    def compute_rank(self, complexity: list[int], data_mean: list[float], data_std: list[float], baseline_score: float):
-        pass
+    def compute_rank(self, complexity: list[int], data_mean: list[float], data_std: list[float], baseline_score: float) -> Literal['A', 'B', 'C', 'D', 'E', 'F', 'U']:
+        metric = self.compute_metric(complexity, data_mean, data_std, baseline_score)
+        return self.compute_rank_from_metric(metric)
 
+#Example of a BenchmarkMetric implementation using Area Under the Curve (AUC)
 class AUCMetric(BenchmarkMetric):
 
     def __init__(self, rank_range: list[float]):
@@ -27,11 +32,7 @@ class AUCMetric(BenchmarkMetric):
         auc_score = auc(complexity, data_mean) / (complexity[-1] - complexity[0])
         return auc_score
         
-    def compute_rank_from_metric(self, metric: float):
+    def compute_rank_from_metric(self, metric: float) -> Literal['A', 'B', 'C', 'D', 'E', 'F', 'U']:
         idx = np.searchsorted(self.rank_range, metric, side='right') - 1
         rank = chr(ord('A') + idx)
         return rank
-
-    def compute_rank(self, complexity: list[int], data_mean: list[float], data_std: list[float], baseline_score: float):
-        metric = self.compute_metric(complexity, data_mean, data_std, baseline_score)
-        return self.compute_rank_from_metric(metric)
