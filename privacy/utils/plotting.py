@@ -147,7 +147,7 @@ def breaking_time_plot(models_metrics):
         y.append(models_metrics[gen]["breaking_time"])
     # Determine plot limits
     max_scale = max(max(x), max(y)) * 1.1
-    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='lower', cmap='viridis', alpha=0.7)
+    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='upper', cmap='viridis', alpha=0.7)
 
     # Scatter plot
     for gen in range(len(models_metrics)):

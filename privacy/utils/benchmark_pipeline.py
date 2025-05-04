@@ -99,6 +99,7 @@ class BenchmarkPipeline():
                 breaking_ind = self._find_breaking_point(M_0, M_1, baseline_score)
                 if breaking_ind == -1:
                     breaking_time = -1
+                    print(f'{self.generators[i]} was not brakoen by the attack')
                 else:
                     breaking_complexity = complexity_range[breaking_ind]
                     breaking_time = breaking_complexity * attack_results[i]['gen_time']
