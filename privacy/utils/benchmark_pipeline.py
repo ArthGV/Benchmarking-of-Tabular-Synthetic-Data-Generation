@@ -4,7 +4,7 @@ import time
 import numpy as np
 from typing import Literal
 import random
-from utils.plotting import single_plot, double_plot, plot_generators_ranks
+from utils.plotting import single_plot, double_plot, plot_generators_ranks, breaking_time_plot
 from utils.benchmark_metric import BenchmarkMetric
 from tools.baseline_attack import get_baseline_score
 import pickle
@@ -86,15 +86,32 @@ class BenchmarkPipeline():
                 double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
-            generators_final_data = []
+            generators_metrics = []
+            baseline_score = self.baseline_score[0]
             for i in range(len(self.generators)):
-                data_mean = (1 - np.array(M_0) + np.array(M_1)) / 2
+                # compute generator ranks
+                data_mean = (1 - np.array(attack_results[i]['M_0']) + np.array(attack_results[i]['M_1'])) / 2
                 data_std = np.array(attack_results[i]['S_0']) + np.array(attack_results[i]['S_1'])
-                benchmark_rank = benchmarking_metric.compute_rank(complexity_range, data_mean, data_std, self.baseline_score[0])
-                benchmark_metric = benchmarking_metric.compute_metric(complexity_range, data_mean, data_std, self.baseline_score[0])
+                benchmark_rank = benchmarking_metric.compute_rank(complexity_range, data_mean, data_std, baseline_score)
+                benchmark_metric = benchmarking_metric.compute_metric(complexity_range, data_mean, data_std, baseline_score)
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
-                generators_final_data.append({"Model": self.generators[i], "Speed": attack_results[i]['gen_time'], "Final_Score": benchmark_rank})
-            plot_generators_ranks(generators_final_data)
+                # compute generator breaking time
+                breaking_ind = self._find_breaking_point(M_0, M_1, baseline_score)
+                if breaking_ind == -1:
+                    breaking_time = -1
+                else:
+                    breaking_complexity = complexity_range[breaking_ind]
+                    breaking_time = breaking_complexity * attack_results[i]['gen_time']
+                generators_metrics.append({"Model": self.generators[i], "Speed": attack_results[i]['gen_time'], "Final_Score": benchmark_rank, "breaking_time": breaking_time})
+            plot_generators_ranks(generators_metrics)
+            breaking_time_plot(generators_metrics)
+
+
+    def _find_breaking_point(self, mean_0, mean_1, baseline_score):
+        for i in range(len(mean_0)):
+            if all(x > baseline_score for x in mean_1[i:]) and all(x < baseline_score for x in mean_0[i:]):
+                return i
+        return -1  # return -1 if no such point exists
 
     def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
         print('Attacking :', self.generators[generator_ind])
@@ -146,7 +163,7 @@ class BenchmarkPipeline():
     def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str | None = None):
         start_time = time.time()
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
-        generation_time = time.time() - start_time
+        generation_time = (time.time() - start_time) * 1000000 # in microseconds
         normalized_gen_time = generation_time / (self.size_of_datasets * number_of_train_datasets)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
 

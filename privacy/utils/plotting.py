@@ -68,11 +68,11 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
     plt.show()
 
 
-def plot_generators_ranks(models, tiers_order=None, title="Model Rank List"):
+def plot_generators_ranks(models_metrics, tiers_order=None):
     if tiers_order is None:
         tiers_order = ["A", "B", "C", "D", "E", "F", "U"]
 
-    df = pd.DataFrame(models)
+    df = pd.DataFrame(models_metrics)
 
     # Set tier column as ordered categorical
     df["Tier"] = pd.Categorical(df["Final_Score"], categories=tiers_order, ordered=True)
@@ -120,12 +120,49 @@ def plot_generators_ranks(models, tiers_order=None, title="Model Rank List"):
         plt.axhline(y=tier_index - 0.5, color='gray', linestyle='--', linewidth=1, zorder=3)
 
     # Axis styling
-    plt.title(title, color='black', fontsize=16)
-    plt.xlabel("Generation time [sec / datapoint]", color='black')
+    plt.title("Model Rank List", color='black', fontsize=16)
+    plt.xlabel("Generation time [μs / datapoint]", color='black')
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
     plt.yticks(color='black')
 
     plt.legend([], [], frameon=False)
     plt.tight_layout()
+    plt.show()
+
+def breaking_time_plot(models_metrics):
+
+    # Create the figure and axis
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    # Create a background with diagonal color lines
+    grid_size = 300
+    gx, gy = np.meshgrid(np.linspace(0, 1, grid_size), np.linspace(0, 1, grid_size))
+    background_intensity = gx + gy  # higher values at top-right
+    max_scale = 0
+    x = []
+    y = []
+    for gen in range(len(models_metrics)):
+        x.append(models_metrics[gen]["Speed"])
+        y.append(models_metrics[gen]["breaking_time"])
+    # Determine plot limits
+    max_scale = max(max(x), max(y)) * 1.1
+    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='lower', cmap='viridis', alpha=0.7)
+
+    # Scatter plot
+    for gen in range(len(models_metrics)):
+        ax.scatter(x[gen], y[gen], edgecolor='k', label=models_metrics[gen]["Model"])
+
+    # x_ex = np.linspace(0.00001, max_scale)
+    # ax.plot(x_ex, x_ex**2, color='yellow', linestyle='--', linewidth=2, label='y = x^2')
+    # ax.plot(x_ex, x_ex, color='orange', linestyle='--', linewidth=2, label='y = x')
+    # ax.plot(x_ex, x_ex**(1/2), color='red', linestyle='--', linewidth=2, label='y = x^(1/2)')
+
+    # Labels and grid
+    plt.xlabel("Generation time [μs / datapoint]", color='black')
+    plt.ylabel("Breaking time [μs / datapoint]", color='black')
+    ax.set_title('Generator breaking vs generation times')
+    ax.set_ylim(0, max_scale)
+    ax.legend()
+    plt.grid(True)
     plt.show()
