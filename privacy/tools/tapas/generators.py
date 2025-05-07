@@ -281,10 +281,7 @@ class SynthcityGenerator(Generator):
 
 
 class SDVGenerator(Generator):
-    """
-    A wrapper for SDV
-    """
-     """A wrapper for reprosyn objects. This is better than the CLI, which
+    """A wrapper for reprosyn objects. This is better than the CLI, which
        fetches the config JSON file from the GitHub repo (?)."""
 
     def __init__(self, sdv_class, label=None, **kwargs):
