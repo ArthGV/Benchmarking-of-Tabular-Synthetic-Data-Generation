@@ -4,26 +4,23 @@ Extension of the TAPAS library to incorporate generators from other libraries an
 import os
 import inspect
 import re
+from abc import abstractmethod
 from tapas.datasets.dataset import TabularDataset
 from tapas.generators import Generator, Raw
 from synthcity.plugins import Plugins
 from synthcity.plugins.core.dataloader import GenericDataLoader
-
-import inspect
-import re
-
-import inspect
-import re
 
 class BenchmarkGenerator(Generator):
     def __init__(self, label, **args):
         super().__init__()
         self._label_ = label
         self.params = args
-
+        
+    @abstractmethod
     def fit(self,dataset, **kwargs):
         pass
 
+    @abstractmethod
     def generate(self, num_samples, random_state=None):
         pass
 
