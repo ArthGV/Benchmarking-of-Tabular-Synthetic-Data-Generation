@@ -6,9 +6,9 @@ from typing import Literal
 import random
 from utils.plotting import single_plot, double_plot, plot_generators_ranks
 from utils.benchmark_metric import BenchmarkMetric
-from tools.baseline_attack import get_baseline_score
+from utils.baseline_attack import get_baseline_score
 import pickle
-from tools.tapas.generators import BenchmarkGenerator
+from utils.generators import BenchmarkGenerator
 import matplotlib.pyplot as plt
 
 
@@ -160,9 +160,11 @@ class BenchmarkPipeline():
     def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str | None = None):
         start_time = time.time()
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
+        print(shadow_labels)
         generation_time = time.time() - start_time
         normalized_gen_time = generation_time / (self.size_of_datasets * number_of_train_datasets)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
+
 
         if path_to_store_generated_datasets:
             with open(path_to_store_generated_datasets, "wb") as f:
