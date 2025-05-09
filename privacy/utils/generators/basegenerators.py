@@ -6,6 +6,7 @@ generators
 
 import os
 import re
+from abc import ABC, abstractmethod
 from tapas.generators import Generator
 from tapas.datasets.dataset import TabularDataset
 
@@ -15,9 +16,11 @@ class BenchmarkGenerator(Generator):
         self._label_ = label
         self.params = args
 
+    @abstractmethod
     def fit(self,dataset, **kwargs):
         pass
-
+    
+    @abstractmethod
     def generate(self, num_samples, random_state=None):
         pass
 
