@@ -55,13 +55,24 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    def run(self, complexity_range: list[int], run_per_range, number_of_tests, plot_style: Literal['single', 'double'] | None = 'double', benchmarking_metric: BenchmarkMetric | None = None, imported_data_paths: list[str | None] | None = None, store_generated_datasets_paths: list[str | None] | None = None, store_results_path: str | None = None):
+    def run(self, 
+            complexity_range: list[int], 
+            run_per_range: int, 
+            number_of_tests: int,
+            p: float = 0.5,
+            plot_style: Literal['single', 'double'] | None = 'double',
+            benchmarking_metric: BenchmarkMetric | None = None, 
+            imported_data_paths: list[str | None] | None = None, 
+            store_generated_datasets_paths: list[str | None] | None = None, 
+            store_results_path: str | None = None):
+        
         """Run the Pipeline
 
         Args:
             complexity_range (_type_): Range of number of shadow models to test the attacks
             run_per_range (_type_): Number of attack per complexity point
             number_of_tests (_type_): Number of test per attack
+            p: maximum average overlap fraction between two datasets taken from the shadow pool, cannot be 0
             plot_style (Literal['single', 'double'] | None, optional): indicate if the user wants to get attack plots for every generators, and their styles.
             benchmarking_metric (BenchmarkMetric | None, optional): class containing the metric to compute the final benchmark rank, None to skip that part
             imported_data_paths (list[str  |  None] | None, optional): Put path of the data at the position corresponding to the generator to load data instead of
@@ -75,7 +86,7 @@ class BenchmarkPipeline():
         for i in range(len(self.generators)):
             imported_data_path = imported_data_paths[i] if (imported_data_paths is not None) else None
             store_generated_datasets_path = store_generated_datasets_paths[i] if (store_generated_datasets_paths is not None) else None
-            M_0, S_0, M_1, S_1, gen_time = self.attack_one_generator(i, complexity_range, run_per_range, number_of_tests, imported_data_path, store_generated_datasets_path)
+            M_0, S_0, M_1, S_1, gen_time = self.attack_one_generator(i, complexity_range, run_per_range, number_of_tests, p, imported_data_path, store_generated_datasets_path)
             attack_results.append({
                                     'M_0': M_0,
                                     'S_0': S_0,
@@ -116,16 +127,9 @@ class BenchmarkPipeline():
             plot_generators_ranks(generators_metrics)
             breaking_time_plot(generators_metrics)
 
-
-    def _find_breaking_point(self, mean_0, mean_1, baseline_score):
-        for i in range(len(mean_0)):
-            if all(x > baseline_score for x in mean_1[i:]) and all(x < baseline_score for x in mean_0[i:]):
-                return i
-        return -1  # return -1 if no such point exists
-
-    def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
+    def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, p: float, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
         print('Attacking :', repr(self.generators[generator_ind]))
-        number_of_generated_shadow_datasets = complexity_range[-1]
+        number_of_generated_shadow_datasets = complexity_range[-1] * (1/p)
         if imported_data_path: #load data
             print('Import datasets from', imported_data_path)
             shadow_data_pool, gen_time = self._import_shadow_datasets(imported_data_path)
@@ -159,6 +163,12 @@ class BenchmarkPipeline():
             M_1.append(np.mean(P_1))
             S_1.append(np.std(P_1))
         return M_0, S_0, M_1, S_1, gen_time
+    
+    def _find_breaking_point(self, mean_0, mean_1, baseline_score):
+        for i in range(len(mean_0)):
+            if all(x > baseline_score for x in mean_1[i:]) and all(x < baseline_score for x in mean_0[i:]):
+                return i
+        return -1  # return -1 if no such point exists
     
     def _sample_shadow_dataset(self, shadow_dataset_pool: list[tapas.datasets.dataset.TabularDataset], number_of_shadow_models: int):
         """
