@@ -108,4 +108,5 @@ def get_baseline_score(dataset, data_point, num_bins, approx=True ):
     test_ll = df_test.apply(lambda row: compute_log_likelihood(row, cat_probs, kde_models), axis=1)
     
     scaled_scores = [get_score(ll, train_ll) for ll in test_ll]
+    print(scaled_scores)
     return scaled_scores

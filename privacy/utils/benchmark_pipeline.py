@@ -6,12 +6,14 @@ from typing import Literal
 import random
 from utils.plotting import single_plot, double_plot, plot_generators_ranks, breaking_time_plot
 from utils.benchmark_metric import BenchmarkMetric
-from tools.baseline_attack import get_baseline_score
+from utils.baseline_attack import get_baseline_score
 import pickle
+from utils.generators import BenchmarkGenerator
+import matplotlib.pyplot as plt
 
 
 class BenchmarkPipeline():
-    def __init__(self, data, attack, generators: list[tapas.generators.Generator], target_record = None, size_of_datasets: int | None = None):
+    def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
         
         self.data = data
         self.attack = attack
@@ -53,7 +55,7 @@ class BenchmarkPipeline():
             for g_k in self.generator_knowledge
         ]
 
-    def run(self, complexity_range: list[int], run_per_range, number_of_tests, plot_style: Literal['single', 'double'] | None = 'double', benchmarking_metric: BenchmarkMetric | None = None, imported_data_paths: list[str | None] | None = None, store_generated_datasets_paths: list[str | None] | None = None):
+    def run(self, complexity_range: list[int], run_per_range, number_of_tests, plot_style: Literal['single', 'double'] | None = 'double', benchmarking_metric: BenchmarkMetric | None = None, imported_data_paths: list[str | None] | None = None, store_generated_datasets_paths: list[str | None] | None = None, store_results_path: str | None = None):
         """Run the Pipeline
 
         Args:
@@ -65,6 +67,7 @@ class BenchmarkPipeline():
             imported_data_paths (list[str  |  None] | None, optional): Put path of the data at the position corresponding to the generator to load data instead of
             generating it, or None to generate the data. Put the all argument to None to generate data for all generators.
             store_generated_datasets_paths (list[str  |  None] | None, optional): Put path where you want to store generated data at the position corresponding to the generator, or None not to store them. Put the all argument to None to store nothing.
+            store_results_path (str | None, optional): Path to store the results of the attack. If None, the results are not stored.
         """
 
         self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
@@ -81,9 +84,15 @@ class BenchmarkPipeline():
                                     'gen_time' : gen_time
                                  })
             if plot_style == 'single':
-                single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
+                fig, axes = single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
+                plt.show()
+                if store_results_path is not None:
+                    fig.savefig(os.path.join(store_results_path, f'{i.get_filename_label()}.png'), dpi=300)
             elif plot_style == 'double':
-                double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
+                fig, axes = double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
+                plt.show()
+                if store_results_path is not None:
+                    fig.savefig(os.path.join(store_results_path, f'{i.get_filename_label()}.png'), dpi=300)
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
             generators_metrics = []
@@ -115,7 +124,7 @@ class BenchmarkPipeline():
         return -1  # return -1 if no such point exists
 
     def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
-        print('Attacking :', self.generators[generator_ind])
+        print('Attacking :', repr(self.generators[generator_ind]))
         number_of_generated_shadow_datasets = complexity_range[-1]
         if imported_data_path: #load data
             print('Import datasets from', imported_data_path)
@@ -167,6 +176,7 @@ class BenchmarkPipeline():
         generation_time = (time.time() - start_time) * 1000000 # in microseconds
         normalized_gen_time = generation_time / (self.size_of_datasets * number_of_train_datasets)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
+
 
         if path_to_store_generated_datasets:
             with open(path_to_store_generated_datasets, "wb") as f:

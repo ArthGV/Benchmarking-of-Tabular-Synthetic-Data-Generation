@@ -3,19 +3,19 @@
 eval "$(micromamba shell hook --shell bash)"
 
 # Create the environment
-micromamba create -n tapas-upgrade python=3.10.15 -c conda-forge
+# micromamba create -n lab_env python=3.10.15 -c conda-forge
 
 # Activate the environment
-micromamba activate tapas-upgrade
+micromamba activate lab_env
 
 # Install from specific folders (in order)
-cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/tapas-main
+cd ./privacy/libs/tapas-main
 pip install .
 
-cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/private-pgm-master
+cd ./privacy/libs/private-pgm-master
 pip install .
 
-cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/reprosyn-main
+cd ./privacy/libs/reprosyn-main
 pip install .
 
 # Install general dependencies
@@ -23,13 +23,13 @@ pip install scikit-learn==1.5.2
 pip install ctgan==0.10.2
 pip install click
 
-cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/synthcity-main
+cd ./privacy/libs/synthcity-main
 pip install .
 
 pip install --upgrade torch torchvision
 pip install --upgrade pandas==1.5.3
 
-cd ~/Desktop/Benchmarking-of-Tabular-Synthetic-Data-Generation/privacy/libs/querysnout-main/src/optimized_qbs
+cd ./privacy/libs/querysnout-main/src/optimized_qbs
 pip install .
 
 pip install --upgrade setuptools

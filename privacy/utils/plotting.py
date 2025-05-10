@@ -13,6 +13,7 @@ def plot(complexity: np.array, mean: np.array, var: np.array = None):
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import os
 
 def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1: np.array, std_1: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines
@@ -43,7 +44,8 @@ def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1:
         ax.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    return fig, axes
 
 def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines
@@ -65,7 +67,8 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
     axes.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    return fig, axes
 
 
 def plot_generators_ranks(models_metrics, tiers_order=None):
@@ -78,8 +81,9 @@ def plot_generators_ranks(models_metrics, tiers_order=None):
     df["Tier"] = pd.Categorical(df["Final_Score"], categories=tiers_order, ordered=True)
 
     # Setup figure
-    plt.figure(figsize=(10, 6))
-    ax = plt.gca()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    # plt.figure(figsize=(10, 6))
+    # ax = plt.gca()
     ax.set_facecolor('white')  # Axes background
 
     # Add colored bands behind each tier row
