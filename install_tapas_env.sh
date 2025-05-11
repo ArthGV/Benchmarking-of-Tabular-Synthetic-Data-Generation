@@ -3,7 +3,7 @@
 eval "$(micromamba shell hook --shell bash)"
 
 # Create the environment
-# micromamba create -n lab_env python=3.10.15 -c conda-forge
+micromamba create -n lab_env python=3.10.15 -c conda-forge
 
 # Activate the environment
 micromamba activate lab_env
@@ -39,5 +39,6 @@ pip install optuna optuna-dashboard
 pip install hydra-optuna-sweeper --upgrade
 pip install --upgrade optuna 
 pip install sdmetrics
+pip install sdv
 
 echo "Installation completed successfully."

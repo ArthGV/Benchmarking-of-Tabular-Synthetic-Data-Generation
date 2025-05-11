@@ -7,7 +7,7 @@ import re
 from tapas.datasets.dataset import TabularDataset
 from synthcity.plugins import Plugins
 from synthcity.plugins.core.dataloader import GenericDataLoader
-from .basegenerators import BenchmarkGenerator
+from utils.basegenerators import BenchmarkGenerator
 
 
 class SynthcityGenerator(BenchmarkGenerator):
@@ -35,8 +35,7 @@ class SynthcityGenerator(BenchmarkGenerator):
 
     def fit(self, dataset):
         """Fitting does nothing, as we don't yet know the output size."""
-        df_data = dataset.data
-
+        self.tabular_dataset = dataset
         self.trained = True
         # TODO add metadata properly to support different synthcity plugins
         '''

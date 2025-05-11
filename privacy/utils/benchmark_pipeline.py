@@ -8,7 +8,7 @@ from utils.plotting import single_plot, double_plot, plot_generators_ranks
 from utils.benchmark_metric import BenchmarkMetric
 from utils.baseline_attack import get_baseline_score
 import pickle
-from utils.generators import BenchmarkGenerator
+from utils.basegenerators import BenchmarkGenerator
 import matplotlib.pyplot as plt
 
 
@@ -70,7 +70,7 @@ class BenchmarkPipeline():
             store_results_path (str | None, optional): Path to store the results of the attack. If None, the results are not stored.
         """
 
-        self.baseline_score = get_baseline_score(self.defender_data, self.target_record, 25)
+        self.baseline_score = get_baseline_score(self.defender_data, self.target_record, num_bins=25, )
         attack_results = []
         for i in range(len(self.generators)):
             imported_data_path = imported_data_paths[i] if (imported_data_paths is not None) else None
@@ -160,7 +160,6 @@ class BenchmarkPipeline():
     def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str | None = None):
         start_time = time.time()
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
-        print(shadow_labels)
         generation_time = time.time() - start_time
         normalized_gen_time = generation_time / (self.size_of_datasets * number_of_train_datasets)
         shadow_data = list(zip(shadow_datasets, shadow_labels))
