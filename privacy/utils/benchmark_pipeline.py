@@ -129,7 +129,7 @@ class BenchmarkPipeline():
 
     def attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, p: float, imported_data_path: str | None = None, path_to_store_generated_datasets: str | None = None):
         print('Attacking :', repr(self.generators[generator_ind]))
-        number_of_generated_shadow_datasets = complexity_range[-1] * (1/p)
+        number_of_generated_shadow_datasets = int(complexity_range[-1] * (1/p))
         if imported_data_path: #load data
             print('Import datasets from', imported_data_path)
             shadow_data_pool, gen_time = self._import_shadow_datasets(imported_data_path)
