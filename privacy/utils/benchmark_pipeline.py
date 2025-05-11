@@ -81,7 +81,7 @@ class BenchmarkPipeline():
             store_results_path (str | None, optional): Path to store the results of the attack. If None, the results are not stored.
         """
 
-        self.baseline_score = get_baseline_score(self.defender_data, self.target_record, num_bins=25, )
+        self.baseline_score = get_baseline_score(self.attacker_data, self.target_record, num_bins=25, )
         attack_results = []
         for i in range(len(self.generators)):
             imported_data_path = imported_data_paths[i] if (imported_data_paths is not None) else None
