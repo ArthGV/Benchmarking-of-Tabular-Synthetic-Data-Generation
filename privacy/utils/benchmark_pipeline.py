@@ -10,7 +10,14 @@ from utils.baseline_attack import get_baseline_score
 import pickle
 from utils.generators import BenchmarkGenerator
 import matplotlib.pyplot as plt
-
+import pandas as pd
+from xgboost import XGBClassifier
+from sklearn.model_selection import cross_val_score, RandomizedSearchCV, train_test_split
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, LabelEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import joblib
+import os
 
 class BenchmarkPipeline():
     def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
@@ -211,4 +218,218 @@ class BenchmarkPipeline():
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
         shadow_data_pool = [shadow_data_0, shadow_data_1]
-        return shadow_data_pool, gen_time
+        return shadow_data_pool, gen_time   
+    
+    def ml_utility(
+        self, 
+        target_col='target', 
+        num_samples=None,
+        test_size=0.2, 
+        classifier=None, 
+        cv=5, n_bootstrap=100, 
+        random_state=42, 
+        optimize_hyperparams=False,
+        preprocess_data=True):
+        
+        dataset = self.data.data # get the data from the dataset as a pandas dataframe
+        num_samples = num_samples if num_samples else len(dataset)
+        print('Number of samples:', num_samples)
+        for i in range(len(self.generators)):
+            print('Evaluating :', repr(self.generators[i]))
+            generator = self.generators[i]
+            generated_data = generator(dataset, num_samples)
+            
+            # evaluate the dataset using the ml_utility function with original data
+            X = dataset.drop(columns=[target_col])
+            y = dataset[target_col]
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y,
+                test_size=test_size,
+                random_state=random_state,
+                stratify=y
+            )
+            print('Evaluating original data')
+            result = self.evaluate_ml_pipeline(X_train, y_train, X_test, y_test, classifier, cv, n_bootstrap, random_state,optimize_hyperparams,preprocess_data)
+            print('Results for original data:', result)
+
+            # evaluate the dataset using the ml_utility function with generated data
+            X_gen = generated_data.drop(columns=[target_col])
+            y_gen = generated_data[target_col]
+            print('Evaluating generated data')
+            result_gen = self.evaluate_ml_pipeline(X_gen, y_gen, X_test, y_test, classifier, cv, n_bootstrap, random_state,optimize_hyperparams,preprocess_data)
+            print('Results for generated data:', result_gen)
+
+
+    def evaluate_ml_pipeline(
+        self,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        classifier=None,
+        cv: int = 5,
+        n_bootstrap: int = 100,
+        random_state: int = 42,
+        optimize_hyperparams: bool = False,
+        preprocess_data : bool = True,
+
+        ) -> dict:
+        """
+        Simple ML utility evaluation pipeline using XGBoost:
+        1. Splits the dataset into train and test.
+        2. Performs k-fold cross-validation on the train set.
+        3. Fits the classifier on the entire train set.
+        4. Evaluates on the test set and computes a bootstrap confidence interval.
+
+        Parameters:
+            X_train, y_train : training data
+            X_test, y_test : test data
+            classifier : estimator object, default=None
+                If None, XGBClassifier will be used
+            cv : int, default=5
+                Number of cross-validation folds
+            n_bootstrap : int, default=1000
+                Number of bootstrap iterations for CI calculation
+            random_state : int, default=42
+                Random seed for reproducibility
+            optimize_hyperparams : bool, default=True
+                Whether to perform hyperparameter optimization
+            model_path : str, default='trained_model.pkl'
+                Path to save the trained model
+            preprocess_data : bool, default=True
+                Whether to automatically preprocess data (encode categoricals and normalize numerics)
+        """
+        # Default classifier: XGBoost
+        if preprocess_data:
+            print("Preprocessing data...")
+            
+            # Convert to pandas DataFrame if not already
+            if not isinstance(X_train, pd.DataFrame):
+                X_train = pd.DataFrame(X_train)
+            if not isinstance(X_test, pd.DataFrame):
+                X_test = pd.DataFrame(X_test)
+                
+            # Identify categorical and numerical columns
+            categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
+            numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
+            
+            print(f"Detected {len(categorical_cols)} categorical and {len(numerical_cols)} numerical features")
+            
+            # Create preprocessor
+            preprocessor = ColumnTransformer(
+                transformers=[
+                    ('num', StandardScaler(), numerical_cols),
+                    ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical_cols)
+                ],
+                remainder='passthrough'
+            )
+            
+            # Process features
+            X_train_processed = preprocessor.fit_transform(X_train)
+            X_test_processed = preprocessor.transform(X_test)
+            
+            # Encode target variable if it's categorical
+            if isinstance(y_train, (list, pd.Series, np.ndarray)) and (isinstance(y_train.iloc[0], str) or isinstance(y_train.iloc[0], bool)):
+                print("Encoding categorical target variable...")
+                label_encoder = LabelEncoder()
+                y_train_encoded = label_encoder.fit_transform(y_train)
+                y_test_encoded = label_encoder.transform(y_test)
+                
+                # Map class names for later reference
+                class_mapping = {i: label for i, label in enumerate(label_encoder.classes_)}
+                print(f"Target class mapping: {class_mapping}")
+            else:
+                y_train_encoded = y_train
+                y_test_encoded = y_test
+                
+            # Use the processed data
+            X_train, X_test = X_train_processed, X_test_processed
+            y_train, y_test = y_train_encoded, y_test_encoded
+        
+        # Default classifier: XGBoost
+        if classifier is None:
+            classifier = XGBClassifier(use_label_encoder=False,
+                                    eval_metric='logloss',
+                                    random_state=random_state)
+        print(f"Using classifier: {classifier}")
+        
+        # Hyperparameter optimization
+        if optimize_hyperparams and isinstance(classifier, XGBClassifier):
+            print("Performing hyperparameter optimization...")
+            
+            # Define the hyperparameter search space
+            param_dist = {
+                'n_estimators': np.arange(50, 500, 50),
+                'learning_rate': np.logspace(-3, 0, 10),
+                'max_depth': np.arange(3, 11),
+                'min_child_weight': np.arange(1, 7),
+                'subsample': np.linspace(0.6, 1.0, 5),
+                'colsample_bytree': np.linspace(0.6, 1.0, 5),
+                'gamma': np.logspace(-3, 1, 5)
+            }
+            
+            # Randomized search with cross-validation
+            random_search = RandomizedSearchCV(
+                classifier,
+                param_distributions=param_dist,
+                n_iter=20,  # Number of parameter settings to try
+                cv=cv,
+                verbose=1,
+                random_state=random_state,
+                n_jobs=-1  # Use all available cores
+            )
+            
+            # Fit randomized search
+            random_search.fit(X_train, y_train)
+            
+            # Get the best classifier
+            classifier = random_search.best_estimator_
+            print(f"Best parameters: {random_search.best_params_}")
+            print(f"Best CV score: {random_search.best_score_:.4f}")
+        
+        # If no hyperparameter optimization or not XGBoost, do standard cross-validation
+        cv_scores = cross_val_score(classifier, X_train, y_train, cv=cv)
+        cv_mean = cv_scores.mean()
+        cv_std = cv_scores.std()
+        print(f"Cross-validation score: {cv_mean:.4f} ± {cv_std:.4f}")
+
+        # Fit on full training set
+        classifier.fit(X_train, y_train)
+
+        # Test-set evaluation
+        test_score = classifier.score(X_test, y_test)
+        print(f"Test score: {test_score:.4f}")
+
+        # Bootstrap to get CI
+        rng = np.random.RandomState(random_state)
+        test_scores = []
+        n_test = len(y_test)
+        X_test_arr = X_test if isinstance(X_test, np.ndarray) else X_test.values if hasattr(X_test, 'values') else X_test
+        y_test_arr = y_test if isinstance(y_test, np.ndarray) else y_test.values if hasattr(y_test, 'values') else y_test
+        for _ in range(n_bootstrap):
+            idx = rng.choice(n_test, n_test, replace=True)
+            test_scores.append(
+                classifier.score(X_test_arr[idx], y_test_arr[idx])
+            )
+        lower = np.percentile(test_scores, 2.5)
+        upper = np.percentile(test_scores, 97.5)
+        print(f"95% CI for test score: [{lower:.4f}, {upper:.4f}]")
+        
+        # Save the model
+        # model_dir = os.path.dirname(model_path)
+        # if model_dir and not os.path.exists(model_dir):
+        #     os.makedirs(model_dir)
+        # joblib.dump(classifier, model_path)
+        # print(f"Model saved to {model_path}")
+
+        return {
+            'cv_mean': cv_mean,
+            'cv_std': cv_std,
+            'test_score': test_score,
+            'test_ci_lower': lower,
+            'test_ci_upper': upper,
+            'model': classifier#,
+            # 'model_path': model_path
+        }
+            
+
