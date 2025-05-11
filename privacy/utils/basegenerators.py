@@ -17,7 +17,7 @@ class BenchmarkGenerator(Generator):
         self.params = args
 
     @abstractmethod
-    def fit(self,dataset, **kwargs):
+    def fit(self,dataset,**kwargs):
         pass
     
     @abstractmethod
