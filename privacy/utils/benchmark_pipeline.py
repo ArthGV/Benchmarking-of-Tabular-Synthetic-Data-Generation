@@ -237,8 +237,7 @@ class BenchmarkPipeline():
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
-            generated_data = generator(dataset, num_samples)
-            
+            generated_data = generator(self.data, num_samples)
             # evaluate the dataset using the ml_utility function with original data
             X = dataset.drop(columns=[target_col])
             y = dataset[target_col]
@@ -250,14 +249,14 @@ class BenchmarkPipeline():
             )
             print('Evaluating original data')
             result = self.evaluate_ml_pipeline(X_train, y_train, X_test, y_test, classifier, cv, n_bootstrap, random_state,optimize_hyperparams,preprocess_data)
-            print('Results for original data:', result)
+            # print('Results for original data:', result)
 
             # evaluate the dataset using the ml_utility function with generated data
-            X_gen = generated_data.drop(columns=[target_col])
-            y_gen = generated_data[target_col]
+            X_gen = generated_data.data.drop(columns=[target_col])
+            y_gen = generated_data.data[target_col]
             print('Evaluating generated data')
             result_gen = self.evaluate_ml_pipeline(X_gen, y_gen, X_test, y_test, classifier, cv, n_bootstrap, random_state,optimize_hyperparams,preprocess_data)
-            print('Results for generated data:', result_gen)
+            # print('Results for generated data:', result_gen)
 
 
     def evaluate_ml_pipeline(
@@ -301,7 +300,7 @@ class BenchmarkPipeline():
         """
         # Default classifier: XGBoost
         if preprocess_data:
-            print("Preprocessing data...")
+            # print("Preprocessing data...")
             
             # Convert to pandas DataFrame if not already
             if not isinstance(X_train, pd.DataFrame):
@@ -313,7 +312,7 @@ class BenchmarkPipeline():
             categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
             numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
             
-            print(f"Detected {len(categorical_cols)} categorical and {len(numerical_cols)} numerical features")
+            # print(f"Detected {len(categorical_cols)} categorical and {len(numerical_cols)} numerical features")
             
             # Create preprocessor
             preprocessor = ColumnTransformer(
@@ -330,14 +329,14 @@ class BenchmarkPipeline():
             
             # Encode target variable if it's categorical
             if isinstance(y_train, (list, pd.Series, np.ndarray)) and (isinstance(y_train.iloc[0], str) or isinstance(y_train.iloc[0], bool)):
-                print("Encoding categorical target variable...")
+                # print("Encoding categorical target variable...")
                 label_encoder = LabelEncoder()
                 y_train_encoded = label_encoder.fit_transform(y_train)
                 y_test_encoded = label_encoder.transform(y_test)
                 
                 # Map class names for later reference
                 class_mapping = {i: label for i, label in enumerate(label_encoder.classes_)}
-                print(f"Target class mapping: {class_mapping}")
+                # print(f"Target class mapping: {class_mapping}")
             else:
                 y_train_encoded = y_train
                 y_test_encoded = y_test
@@ -351,11 +350,11 @@ class BenchmarkPipeline():
             classifier = XGBClassifier(use_label_encoder=False,
                                     eval_metric='logloss',
                                     random_state=random_state)
-        print(f"Using classifier: {classifier}")
+        # print(f"Using classifier: {classifier}")
         
         # Hyperparameter optimization
         if optimize_hyperparams and isinstance(classifier, XGBClassifier):
-            print("Performing hyperparameter optimization...")
+            # print("Performing hyperparameter optimization...")
             
             # Define the hyperparameter search space
             param_dist = {
@@ -384,21 +383,21 @@ class BenchmarkPipeline():
             
             # Get the best classifier
             classifier = random_search.best_estimator_
-            print(f"Best parameters: {random_search.best_params_}")
-            print(f"Best CV score: {random_search.best_score_:.4f}")
+            # print(f"Best parameters: {random_search.best_params_}")
+            # print(f"Best CV score: {random_search.best_score_:.4f}")
         
         # If no hyperparameter optimization or not XGBoost, do standard cross-validation
         cv_scores = cross_val_score(classifier, X_train, y_train, cv=cv)
         cv_mean = cv_scores.mean()
         cv_std = cv_scores.std()
-        print(f"Cross-validation score: {cv_mean:.4f} ± {cv_std:.4f}")
+        # print(f"Cross-validation score: {cv_mean:.4f} ± {cv_std:.4f}")
 
         # Fit on full training set
         classifier.fit(X_train, y_train)
 
         # Test-set evaluation
         test_score = classifier.score(X_test, y_test)
-        print(f"Test score: {test_score:.4f}")
+        # print(f"Test score: {test_score:.4f}")
 
         # Bootstrap to get CI
         rng = np.random.RandomState(random_state)
