@@ -60,7 +60,7 @@ class BenchmarkPipeline():
             run_per_range: int, 
             number_of_tests: int,
             p: float = 0.5,
-            plot_style: Literal['single', 'double'] | None = 'double',
+            plot_style: Literal['single', 'double', 'all'] | None = 'all',
             benchmarking_metric: BenchmarkMetric | None = None, 
             imported_data_paths: list[str | None] | None = None, 
             store_generated_datasets_paths: list[str | None] | None = None, 
@@ -94,12 +94,12 @@ class BenchmarkPipeline():
                                     'S_1': S_1,
                                     'gen_time' : gen_time
                                  })
-            if plot_style == 'single':
+            if plot_style in ['single', 'all']:
                 fig, axes = single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results_path is not None:
                     fig.savefig(os.path.join(store_results_path, f'{i.get_filename_label()}.png'), dpi=300)
-            elif plot_style == 'double':
+            if plot_style in ['double', 'all']:
                 fig, axes = double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results_path is not None:
