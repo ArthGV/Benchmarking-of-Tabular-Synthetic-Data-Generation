@@ -98,12 +98,12 @@ class BenchmarkPipeline():
                 fig, axes = single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results_path is not None:
-                    fig.savefig(os.path.join(store_results_path, f'{i.get_filename_label()}.png'), dpi=300)
+                    fig.savefig(os.path.join(store_results_path, f'{i}.png'), dpi=300)
             if plot_style in ['double', 'all']:
                 fig, axes = double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results_path is not None:
-                    fig.savefig(os.path.join(store_results_path, f'{i.get_filename_label()}.png'), dpi=300)
+                    fig.savefig(os.path.join(store_results_path, f'{i}.png'), dpi=300)
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
             generators_metrics = []
@@ -117,7 +117,7 @@ class BenchmarkPipeline():
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
                 # compute generator breaking time
                 breaking_ind = self._find_breaking_point(M_0, M_1, baseline_score)
-                if breaking_ind == -1:
+                if breaking_ind < 0:
                     breaking_time = -1
                     print(f'{self.generators[i]} was not broken by the attack')
                 else:
