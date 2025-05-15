@@ -15,9 +15,9 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import cross_val_score, RandomizedSearchCV, train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-import joblib
-import os
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import MinMaxScaler
+import gower
 
 class BenchmarkPipeline():
     def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
@@ -229,15 +229,25 @@ class BenchmarkPipeline():
         cv=5, n_bootstrap=100, 
         random_state=42, 
         optimize_hyperparams=False,
-        preprocess_data=True):
+        preprocess_data=True,
+        results_path="results_ml_utility.csv",
+        cat_features=None
+        ):
         
         dataset = self.data.data # get the data from the dataset as a pandas dataframe
         num_samples = num_samples if num_samples else len(dataset)
         print('Number of samples:', num_samples)
+
+        # ensure saving file exists
+        file_exists = os.path.isfile(results_path)
+        rows = []
+
+
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
             generated_data = generator(self.data, num_samples)
+
             # evaluate the dataset using the ml_utility function with original data
             X = dataset.drop(columns=[target_col])
             y = dataset[target_col]
@@ -247,16 +257,37 @@ class BenchmarkPipeline():
                 random_state=random_state,
                 stratify=y
             )
+
             print('Evaluating original data')
-            result = self.evaluate_ml_pipeline(X_train, y_train, X_test, y_test, classifier, cv, n_bootstrap, random_state,optimize_hyperparams,preprocess_data)
+            result = self.evaluate_ml_pipeline(
+                X_train, y_train, X_test, y_test, classifier, 
+                cv, n_bootstrap, random_state,optimize_hyperparams,
+                preprocess_data, cat_features)
+            row_orig = {"generator": repr(generator), "dataset": "original", "cv_mean": result['cv_mean'], "cv_std": result['cv_std'], "test_score": result['test_score'], "test_ci_lower": result['test_ci_lower'], "test_ci_upper": result['test_ci_upper']}
             # print('Results for original data:', result)
 
             # evaluate the dataset using the ml_utility function with generated data
             X_gen = generated_data.data.drop(columns=[target_col])
             y_gen = generated_data.data[target_col]
             print('Evaluating generated data')
-            result_gen = self.evaluate_ml_pipeline(X_gen, y_gen, X_test, y_test, classifier, cv, n_bootstrap, random_state,optimize_hyperparams,preprocess_data)
+            result_gen = self.evaluate_ml_pipeline(
+                X_gen, y_gen, X_test, y_test, classifier,
+                  cv, n_bootstrap, random_state,optimize_hyperparams,
+                  preprocess_data)
+            row_gen = {"generator": repr(generator), "dataset": "generated", "cv_mean": result_gen['cv_mean'], "cv_std": result_gen['cv_std'], "test_score": result_gen['test_score'], "test_ci_lower": result_gen['test_ci_lower'], "test_ci_upper": result_gen['test_ci_upper']}
             # print('Results for generated data:', result_gen)
+            rows.append(row_orig)
+            rows.append(row_gen)
+
+        # save the results to a csv file
+        df = pd.DataFrame(rows)
+        df.to_csv(
+            results_path,
+            mode='a' if file_exists else 'w',
+            index=False,
+            header=not file_exists
+        )
+        print(f'Results saved to {results_path}')
 
 
     def evaluate_ml_pipeline(
@@ -271,7 +302,7 @@ class BenchmarkPipeline():
         random_state: int = 42,
         optimize_hyperparams: bool = False,
         preprocess_data : bool = True,
-
+        categorical_cols: list[str] = None
         ) -> dict:
         """
         Simple ML utility evaluation pipeline using XGBoost:
@@ -309,8 +340,13 @@ class BenchmarkPipeline():
                 X_test = pd.DataFrame(X_test)
                 
             # Identify categorical and numerical columns
-            categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
-            numerical_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
+            if categorical_cols is None:
+                categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
+            else:
+                categorical_cols = [col for col in categorical_cols if col in X_train.columns]
+            
+            # numerical columns are the ones not in categorical_cols
+            numerical_cols = [col for col in X_train.columns if col not in categorical_cols]
             
             # print(f"Detected {len(categorical_cols)} categorical and {len(numerical_cols)} numerical features")
             
@@ -430,5 +466,79 @@ class BenchmarkPipeline():
             'model': classifier#,
             # 'model_path': model_path
         }
-            
+
+    def binary_mask_list(self, df: pd.DataFrame, selected_cols: list[str]) -> list[int]:
+        """
+        Given a DataFrame `df` and a list of column names `selected_cols`,
+        return a binary list of length df.shape[1] where each position is
+        1 iff that column is in selected_cols, else 0.
+        """
+        # Method 1: list comprehension
+        return [1 if col in selected_cols else 0 for col in df.columns]
+
+
+
+    def compute_dcr(self, real_data, synth_data, metric='euclidean', cat_features=None):
+        """
+        Compute the Distance to Closest Record (DCR) for each synthetic sample.
+        Supports numeric-only (euclidean, manhattan, etc.) or mixed data via Gower.
+
+        Parameters
+        ----------
+        real_data : array-like or pandas.DataFrame of shape (n_real, n_features)
+        synth_data : array-like or pandas.DataFrame of shape (n_synth, n_features)
+        metric : str, default='euclidean'
+            Numeric metrics supported by sklearn neighbors, or 'gower' for mixed data.
+        cat_features : list of column names (optional)
+            When using Gower, specify any numeric-coded categorical columns here.
+
+        Returns
+        -------
+        dcr_values : numpy.ndarray of shape (n_synth,)
+            Minimum distance from each synthetic sample to its nearest real sample.
+        """
+        if metric == 'gower':
+            print("Using Gower distance")
+            # DataFrames required
+            # real_df = pd.DataFrame(real_data)
+            # synth_df = pd.DataFrame(synth_data)
+            # D = self.gower_distance_matrix(real_data, synth_data, cat_features)
+            if cat_features is not None:
+                # Explicit categorical list
+                cat_features_bin = self.binary_mask_list(real_data, cat_features)
+            D = gower.gower_matrix(real_data, synth_data, cat_features=cat_features_bin)
+            return D.min(axis=1)
+
+        # Numeric-only path
+        real_arr = np.asarray(real_data)
+        synth_arr = np.asarray(synth_data)
+        if real_arr.ndim != 2 or synth_arr.ndim != 2:
+            raise ValueError("real_data and synth_data must be 2D arrays for numeric metrics.")
+        if real_arr.shape[1] != synth_arr.shape[1]:
+            raise ValueError(
+                f"Feature mismatch: real has {real_arr.shape[1]} features, synth has {synth_arr.shape[1]}"
+            )
+        nn = NearestNeighbors(n_neighbors=1, metric=metric)
+        nn.fit(real_arr)
+        dist, _ = nn.kneighbors(synth_arr, return_distance=True)
+        return dist.ravel()
+
+
+    def average_dcr(self, num_samples = None, metric='euclidean', cat_features=None, results_path="results_ml_utility.csv",):
+        """
+        Compute average DCR across synthetic samples.
+        """
+        num_samples = num_samples if num_samples else len(self.data.data)
+
+        # ensure saving file exists
+        file_exists = os.path.isfile(results_path)
+        rows = []
+        
+        for i in range(len(self.generators)):
+            print('Evaluating :', repr(self.generators[i]))
+            generator = self.generators[i]
+            generated_data = generator(self.data, num_samples)
+            dcr_vals = self.compute_dcr(self.data.data, generated_data.data, metric, cat_features)
+            print("DCR",dcr_vals)
+        return np.mean(dcr_vals)
 
