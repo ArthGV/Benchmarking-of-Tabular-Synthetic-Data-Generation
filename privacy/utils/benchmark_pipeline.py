@@ -289,7 +289,6 @@ class BenchmarkPipeline():
         )
         print(f'Results saved to {results_path}')
 
-
     def evaluate_ml_pipeline(
         self,
         X_train,
@@ -476,8 +475,6 @@ class BenchmarkPipeline():
         # Method 1: list comprehension
         return [1 if col in selected_cols else 0 for col in df.columns]
 
-
-
     def compute_dcr(self, real_data, synth_data, metric='euclidean', cat_features=None):
         """
         Compute the Distance to Closest Record (DCR) for each synthetic sample.
@@ -524,7 +521,7 @@ class BenchmarkPipeline():
         return dist.ravel()
 
 
-    def average_dcr(self, num_samples = None, metric='euclidean', cat_features=None, results_path="results_ml_utility.csv",):
+    def average_dcr(self, num_samples = None, metric='euclidean', cat_features=None, results_path="results_dcr.csv",):
         """
         Compute average DCR across synthetic samples.
         """
@@ -539,6 +536,16 @@ class BenchmarkPipeline():
             generator = self.generators[i]
             generated_data = generator(self.data, num_samples)
             dcr_vals = self.compute_dcr(self.data.data, generated_data.data, metric, cat_features)
-            print("DCR",dcr_vals)
+            row = {"generator": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
+            rows.append(row)
+        
+        # save the results to a csv file
+        df = pd.DataFrame(rows)
+        df.to_csv(
+            results_path,
+            mode='a' if file_exists else 'w',
+            index=False,
+            header=not file_exists
+        )
         return np.mean(dcr_vals)
 
