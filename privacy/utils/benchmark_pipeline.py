@@ -242,6 +242,21 @@ class BenchmarkPipeline():
         file_exists = os.path.isfile(results_path)
         rows = []
 
+        X = dataset.drop(columns=[target_col])
+        y = dataset[target_col]
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=y
+        )
+
+        # evaluate the dataset using the ml_utility function with original data
+        print('Evaluating original data')
+        result = self.evaluate_ml_pipeline(
+                X_train, y_train, X_test, y_test, classifier, 
+                cv, n_bootstrap, random_state,optimize_hyperparams,
+                preprocess_data, cat_features)
 
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
@@ -249,20 +264,6 @@ class BenchmarkPipeline():
             generated_data = generator(self.data, num_samples)
 
             # evaluate the dataset using the ml_utility function with original data
-            X = dataset.drop(columns=[target_col])
-            y = dataset[target_col]
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y,
-                test_size=test_size,
-                random_state=random_state,
-                stratify=y
-            )
-
-            print('Evaluating original data')
-            result = self.evaluate_ml_pipeline(
-                X_train, y_train, X_test, y_test, classifier, 
-                cv, n_bootstrap, random_state,optimize_hyperparams,
-                preprocess_data, cat_features)
             row_orig = {"generator": repr(generator), "dataset": "original", "cv_mean": result['cv_mean'], "cv_std": result['cv_std'], "test_score": result['test_score'], "test_ci_lower": result['test_ci_lower'], "test_ci_upper": result['test_ci_upper']}
             # print('Results for original data:', result)
 
@@ -495,11 +496,6 @@ class BenchmarkPipeline():
             Minimum distance from each synthetic sample to its nearest real sample.
         """
         if metric == 'gower':
-            print("Using Gower distance")
-            # DataFrames required
-            # real_df = pd.DataFrame(real_data)
-            # synth_df = pd.DataFrame(synth_data)
-            # D = self.gower_distance_matrix(real_data, synth_data, cat_features)
             if cat_features is not None:
                 # Explicit categorical list
                 cat_features_bin = self.binary_mask_list(real_data, cat_features)
