@@ -18,6 +18,9 @@ from sklearn.compose import ColumnTransformer
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler
 import gower
+from scipy.stats import randint, uniform
+from sklearn.metrics import f1_score, classification_report
+from tapas.datasets.data_description import DataDescription
 
 class BenchmarkPipeline():
     def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
@@ -71,7 +74,9 @@ class BenchmarkPipeline():
             benchmarking_metric: BenchmarkMetric | None = None, 
             imported_data_paths: list[str | None] | None = None, 
             store_generated_datasets_paths: list[str | None] | None = None, 
-            store_results_path: str | None = None):
+            store_results_path: str | None = None,
+            results_path="results_complexity_break.csv"
+            ):
         
         """Run the Pipeline
 
@@ -87,6 +92,9 @@ class BenchmarkPipeline():
             store_generated_datasets_paths (list[str  |  None] | None, optional): Put path where you want to store generated data at the position corresponding to the generator, or None not to store them. Put the all argument to None to store nothing.
             store_results_path (str | None, optional): Path to store the results of the attack. If None, the results are not stored.
         """
+        # ensure saving file exists
+        file_exists = os.path.isfile(results_path)
+        rows = []
 
         self.baseline_score = get_baseline_score(self.attacker_data, self.target_record, num_bins=25, )
         attack_results = []
@@ -121,6 +129,7 @@ class BenchmarkPipeline():
                 data_std = np.array(attack_results[i]['S_0']) + np.array(attack_results[i]['S_1'])
                 benchmark_rank = benchmarking_metric.compute_rank(complexity_range, data_mean, data_std, baseline_score)
                 benchmark_metric = benchmarking_metric.compute_metric(complexity_range, data_mean, data_std, baseline_score)
+
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
                 # compute generator breaking time
                 breaking_ind = self._find_breaking_point(M_0, M_1, baseline_score)
@@ -130,7 +139,17 @@ class BenchmarkPipeline():
                 else:
                     breaking_complexity = complexity_range[breaking_ind]
                     breaking_time = breaking_complexity * attack_results[i]['gen_time']
-                generators_metrics.append({"Model": self.generators[i], "Speed": attack_results[i]['gen_time'], "Final_Score": benchmark_rank, "breaking_time": breaking_time})
+                generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank ,"Benchmark_metric": benchmark_metric, "breaking_time": breaking_time})
+
+            df = pd.DataFrame(generators_metrics)
+            df.to_csv(
+                results_path,
+                mode='a' if file_exists else 'w',
+                index=False,
+                header=not file_exists
+            )
+
+            print(f'Results saved to {results_path}')
             plot_generators_ranks(generators_metrics)
             breaking_time_plot(generators_metrics)
 
@@ -230,30 +249,38 @@ class BenchmarkPipeline():
         random_state=42, 
         optimize_hyperparams=False,
         preprocess_data=True,
-        results_path="results_ml_utility.csv",
-        cat_features=None
+        results_path="results_ml_utility.csv"
         ):
         
+        cat_features = self.data.description.one_hot_cols
+        cat_features = [col for col in cat_features if col != target_col]
+        description = DataDescription(self.data.description.schema)
         dataset = self.data.data # get the data from the dataset as a pandas dataframe
-        num_samples = num_samples if num_samples else len(dataset)
-        print('Number of samples:', num_samples)
 
         # ensure saving file exists
         file_exists = os.path.isfile(results_path)
         rows = []
 
-        X = dataset.drop(columns=[target_col])
+        
         y = dataset[target_col]
+        X = dataset.drop(columns=[target_col])
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
             test_size=test_size,
             random_state=random_state,
             stratify=y
         )
+        
+
+        # combine X_train and y_train into a single dataframe
+        train_combined = pd.concat([X_train, y_train], axis=1)
+        # transform train_combined into tapas.datasets.dataset.TabularDataset
+        train_combined_tab = tapas.datasets.dataset.TabularDataset(train_combined,description)
+        num_samples = num_samples if num_samples else len(train_combined)
 
         # evaluate the dataset using the ml_utility function with original data
         print('Evaluating original data')
-        result = self.evaluate_ml_pipeline(
+        result = self._evaluate_ml_pipeline(
                 X_train, y_train, X_test, y_test, classifier, 
                 cv, n_bootstrap, random_state,optimize_hyperparams,
                 preprocess_data, cat_features)
@@ -261,21 +288,22 @@ class BenchmarkPipeline():
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
-            generated_data = generator(self.data, num_samples)
+            generated_data = generator(train_combined_tab, num_samples)
 
             # evaluate the dataset using the ml_utility function with original data
-            row_orig = {"generator": repr(generator), "dataset": "original", "cv_mean": result['cv_mean'], "cv_std": result['cv_std'], "test_score": result['test_score'], "test_ci_lower": result['test_ci_lower'], "test_ci_upper": result['test_ci_upper']}
+            row_orig = {"generator": repr(generator), "dataset": "original","test_score": result['test_score']}
             # print('Results for original data:', result)
 
             # evaluate the dataset using the ml_utility function with generated data
-            X_gen = generated_data.data.drop(columns=[target_col])
             y_gen = generated_data.data[target_col]
+            X_gen = generated_data.data.drop(columns=[target_col])
+
             print('Evaluating generated data')
-            result_gen = self.evaluate_ml_pipeline(
+            result_gen = self._evaluate_ml_pipeline(
                 X_gen, y_gen, X_test, y_test, classifier,
                   cv, n_bootstrap, random_state,optimize_hyperparams,
-                  preprocess_data)
-            row_gen = {"generator": repr(generator), "dataset": "generated", "cv_mean": result_gen['cv_mean'], "cv_std": result_gen['cv_std'], "test_score": result_gen['test_score'], "test_ci_lower": result_gen['test_ci_lower'], "test_ci_upper": result_gen['test_ci_upper']}
+                  preprocess_data,categorical_cols=cat_features)
+            row_gen = {"generator": repr(generator), "dataset": "generated", "test_score": result_gen['test_score']}
             # print('Results for generated data:', result_gen)
             rows.append(row_orig)
             rows.append(row_gen)
@@ -290,7 +318,7 @@ class BenchmarkPipeline():
         )
         print(f'Results saved to {results_path}')
 
-    def evaluate_ml_pipeline(
+    def _evaluate_ml_pipeline(
         self,
         X_train,
         y_train,
@@ -300,7 +328,7 @@ class BenchmarkPipeline():
         cv: int = 5,
         n_bootstrap: int = 100,
         random_state: int = 42,
-        optimize_hyperparams: bool = False,
+        optimize_hyperparams: bool = True,
         preprocess_data : bool = True,
         categorical_cols: list[str] = None
         ) -> dict:
@@ -338,12 +366,6 @@ class BenchmarkPipeline():
                 X_train = pd.DataFrame(X_train)
             if not isinstance(X_test, pd.DataFrame):
                 X_test = pd.DataFrame(X_test)
-                
-            # Identify categorical and numerical columns
-            if categorical_cols is None:
-                categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
-            else:
-                categorical_cols = [col for col in categorical_cols if col in X_train.columns]
             
             # numerical columns are the ones not in categorical_cols
             numerical_cols = [col for col in X_train.columns if col not in categorical_cols]
@@ -394,20 +416,21 @@ class BenchmarkPipeline():
             
             # Define the hyperparameter search space
             param_dist = {
-                'n_estimators': np.arange(50, 500, 50),
-                'learning_rate': np.logspace(-3, 0, 10),
-                'max_depth': np.arange(3, 11),
-                'min_child_weight': np.arange(1, 7),
-                'subsample': np.linspace(0.6, 1.0, 5),
-                'colsample_bytree': np.linspace(0.6, 1.0, 5),
-                'gamma': np.logspace(-3, 1, 5)
+                'n_estimators':        randint(50, 500),
+                'max_depth':           randint(3, 12),
+                'learning_rate':       uniform(0.01, 0.3),
+                'subsample':           uniform(0.5, 0.5),
+                'min_child_weight':    uniform(0, 10),
+                'gamma':               uniform(0, 5),
+                'reg_alpha':           uniform(0, 1),
+                'reg_lambda':          uniform(0, 1),
             }
             
             # Randomized search with cross-validation
             random_search = RandomizedSearchCV(
                 classifier,
                 param_distributions=param_dist,
-                n_iter=20,  # Number of parameter settings to try
+                n_iter=10000,  # Number of parameter settings to try
                 cv=cv,
                 verbose=1,
                 random_state=random_state,
@@ -419,55 +442,41 @@ class BenchmarkPipeline():
             
             # Get the best classifier
             classifier = random_search.best_estimator_
-            # print(f"Best parameters: {random_search.best_params_}")
-            # print(f"Best CV score: {random_search.best_score_:.4f}")
         
         # If no hyperparameter optimization or not XGBoost, do standard cross-validation
-        cv_scores = cross_val_score(classifier, X_train, y_train, cv=cv)
+        cv_scores = cross_val_score(classifier, X_train, y_train, cv=cv, scoring='f1')
         cv_mean = cv_scores.mean()
         cv_std = cv_scores.std()
-        # print(f"Cross-validation score: {cv_mean:.4f} ± {cv_std:.4f}")
 
         # Fit on full training set
         classifier.fit(X_train, y_train)
 
-        # Test-set evaluation
-        test_score = classifier.score(X_test, y_test)
-        # print(f"Test score: {test_score:.4f}")
+        # Test-set evaluation with f1 score
+        y_pred = classifier.predict(X_test)
+        f1 = f1_score(y_test, y_pred, average='binary')
 
         # Bootstrap to get CI
-        rng = np.random.RandomState(random_state)
-        test_scores = []
-        n_test = len(y_test)
-        X_test_arr = X_test if isinstance(X_test, np.ndarray) else X_test.values if hasattr(X_test, 'values') else X_test
-        y_test_arr = y_test if isinstance(y_test, np.ndarray) else y_test.values if hasattr(y_test, 'values') else y_test
-        for _ in range(n_bootstrap):
-            idx = rng.choice(n_test, n_test, replace=True)
-            test_scores.append(
-                classifier.score(X_test_arr[idx], y_test_arr[idx])
-            )
-        lower = np.percentile(test_scores, 2.5)
-        upper = np.percentile(test_scores, 97.5)
-        print(f"95% CI for test score: [{lower:.4f}, {upper:.4f}]")
-        
-        # Save the model
-        # model_dir = os.path.dirname(model_path)
-        # if model_dir and not os.path.exists(model_dir):
-        #     os.makedirs(model_dir)
-        # joblib.dump(classifier, model_path)
-        # print(f"Model saved to {model_path}")
+        # rng = np.random.RandomState(random_state)
+        # test_scores = []
+        # n_test = len(y_test)
+        # X_test_arr = X_test if isinstance(X_test, np.ndarray) else X_test.values if hasattr(X_test, 'values') else X_test
+        # y_test_arr = y_test if isinstance(y_test, np.ndarray) else y_test.values if hasattr(y_test, 'values') else y_test
+        # for _ in range(n_bootstrap):
+        #     idx = rng.choice(n_test, n_test, replace=True)
+        #     test_scores.append(
+        #         classifier.score(X_test_arr[idx], y_test_arr[idx])
+        #     )
+        # lower = np.percentile(test_scores, 2.5)
+        # upper = np.percentile(test_scores, 97.5)
+        # print(f"95% CI for test score: [{lower:.4f}, {upper:.4f}]")
 
         return {
-            'cv_mean': cv_mean,
-            'cv_std': cv_std,
-            'test_score': test_score,
-            'test_ci_lower': lower,
-            'test_ci_upper': upper,
+            'test_score': f1,
             'model': classifier#,
             # 'model_path': model_path
         }
 
-    def binary_mask_list(self, df: pd.DataFrame, selected_cols: list[str]) -> list[int]:
+    def _binary_mask_list(self, df: pd.DataFrame, selected_cols: list[str]) -> list[int]:
         """
         Given a DataFrame `df` and a list of column names `selected_cols`,
         return a binary list of length df.shape[1] where each position is
@@ -476,7 +485,7 @@ class BenchmarkPipeline():
         # Method 1: list comprehension
         return [1 if col in selected_cols else 0 for col in df.columns]
 
-    def compute_dcr(self, real_data, synth_data, metric='euclidean', cat_features=None):
+    def _compute_dcr(self, real_data, synth_data, metric='euclidean', cat_features=None):
         """
         Compute the Distance to Closest Record (DCR) for each synthetic sample.
         Supports numeric-only (euclidean, manhattan, etc.) or mixed data via Gower.
@@ -498,7 +507,7 @@ class BenchmarkPipeline():
         if metric == 'gower':
             if cat_features is not None:
                 # Explicit categorical list
-                cat_features_bin = self.binary_mask_list(real_data, cat_features)
+                cat_features_bin = self._binary_mask_list(real_data, cat_features)
             D = gower.gower_matrix(real_data, synth_data, cat_features=cat_features_bin)
             return D.min(axis=1)
 
@@ -517,11 +526,12 @@ class BenchmarkPipeline():
         return dist.ravel()
 
 
-    def average_dcr(self, num_samples = None, metric='euclidean', cat_features=None, results_path="results_dcr.csv",):
+    def average_dcr(self, num_samples = None, metric='euclidean',results_path="results_dcr.csv",):
         """
         Compute average DCR across synthetic samples.
         """
         num_samples = num_samples if num_samples else len(self.data.data)
+        cat_features = self.data.description.one_hot_cols
 
         # ensure saving file exists
         file_exists = os.path.isfile(results_path)
@@ -531,7 +541,7 @@ class BenchmarkPipeline():
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
             generated_data = generator(self.data, num_samples)
-            dcr_vals = self.compute_dcr(self.data.data, generated_data.data, metric, cat_features)
+            dcr_vals = self._compute_dcr(self.data.data, generated_data.data, metric, cat_features)
             row = {"generator": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
             rows.append(row)
         
