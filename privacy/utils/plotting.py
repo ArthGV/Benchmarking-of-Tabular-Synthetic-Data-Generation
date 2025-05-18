@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 def plot(complexity: np.array, mean: np.array, var: np.array = None):
     plt.scatter(complexity, mean, c='red')
@@ -9,11 +10,6 @@ def plot(complexity: np.array, mean: np.array, var: np.array = None):
         upper_bound = mean + var
         plt.scatter(complexity, mean, c='red')
         plt.fill_between(complexity, lower_bound, upper_bound, alpha=.3, color='red')
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-import os
 
 def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1: np.array, std_1: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines

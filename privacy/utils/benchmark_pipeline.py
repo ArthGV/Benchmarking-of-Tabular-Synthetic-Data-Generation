@@ -132,12 +132,12 @@ class BenchmarkPipeline():
 
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
                 # compute generator breaking time
-                breaking_ind = self._find_breaking_point(M_0, M_1, baseline_score)
-                if breaking_ind < 0:
+                breaking_complexity = self._find_breaking_point(complexity_range, M_0, M_1, baseline_score)
+                print(breaking_complexity)
+                if breaking_complexity < 0:
                     breaking_time = -1
                     print(f'{self.generators[i]} was not broken by the attack')
                 else:
-                    breaking_complexity = complexity_range[breaking_ind]
                     breaking_time = breaking_complexity * attack_results[i]['gen_time']
                 generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank ,"Benchmark_metric": benchmark_metric, "breaking_time": breaking_time})
 
@@ -190,10 +190,35 @@ class BenchmarkPipeline():
             S_1.append(np.std(P_1))
         return M_0, S_0, M_1, S_1, gen_time
     
-    def _find_breaking_point(self, mean_0, mean_1, baseline_score):
+    def _find_breaking_point(self, complexity_range, mean_0, mean_1, baseline_score):
+        print('---new function--')
         for i in range(len(mean_0)):
             if all(x > baseline_score for x in mean_1[i:]) and all(x < baseline_score for x in mean_0[i:]):
-                return i
+                if i == 0:
+                    return complexity_range[i]
+                #breaking point
+                c_b = complexity_range[i]
+                M_b_0 = mean_0[i]
+                M_b_1 = mean_1[i]
+                #previous point
+                c_p = complexity_range[i - 1]
+                M_p_0 = mean_0[i - 1]
+                M_p_1 = mean_1[i - 1]
+                #inverse interpolations
+                slope_0 = (M_b_0 - M_p_0 + 1e-6) / (c_b - c_p) #1e-6 for numerical stability
+                slope_1 = (M_b_1 - M_p_1 + 1e-6) / (c_b - c_p)
+                if_0 = lambda y : c_p + ((y - M_p_0) / slope_0)
+                if_1 = lambda y : c_p + ((y - M_p_1) / slope_1)
+                #find breaking point
+                breaking_0 = if_0(baseline_score)
+                breaking_1 = if_1(baseline_score)
+                if breaking_0 > c_b or breaking_0 < c_p:
+                    breaking_0 = -1
+                if breaking_1 > c_b or breaking_1 < c_p:
+                    breaking_1 = -1
+                breaking_point = max(breaking_0, breaking_1)
+                print('-------------', breaking_point)
+                return breaking_point
         return -1  # return -1 if no such point exists
     
     def _sample_shadow_dataset(self, shadow_dataset_pool: list[tapas.datasets.dataset.TabularDataset], number_of_shadow_models: int):
@@ -227,7 +252,7 @@ class BenchmarkPipeline():
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
         shadow_data_pool = [shadow_data_0, shadow_data_1]
         return shadow_data_pool, normalized_gen_time
-    
+        
     def _import_shadow_datasets(self, path:str):
         with open(path, "rb") as d:
             loaded_data = pickle.load(d)
@@ -243,7 +268,7 @@ class BenchmarkPipeline():
         self, 
         target_col='target', 
         num_samples=None,
-        test_size=0.2, 
+        test_size=0.2,
         classifier=None, 
         cv=5, n_bootstrap=100, 
         random_state=42, 
