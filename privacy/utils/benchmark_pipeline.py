@@ -139,7 +139,7 @@ class BenchmarkPipeline():
                     print(f'{self.generators[i]} was not broken by the attack')
                 else:
                     breaking_time = breaking_complexity * attack_results[i]['gen_time']
-                generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank ,"Benchmark_metric": benchmark_metric, "breaking_time": breaking_time})
+                generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank,"Benchmark_score":benchmark_metric, "breaking_time": breaking_time})
 
             df = pd.DataFrame(generators_metrics)
             df.to_csv(
