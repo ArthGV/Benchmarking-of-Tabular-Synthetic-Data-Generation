@@ -78,7 +78,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None):
     df = pd.DataFrame(models_metrics)
 
     # Set tier column as ordered categorical
-    df["Tier"] = pd.Categorical(df["Final_Score"], categories=tiers_order, ordered=True)
+    df["Tier"] = pd.Categorical(df["Benchmark_rank"], categories=tiers_order, ordered=True)
 
     # Setup figure
     fig, ax = plt.subplots(figsize=(10, 6))

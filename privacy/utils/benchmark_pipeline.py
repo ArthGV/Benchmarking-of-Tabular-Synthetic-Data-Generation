@@ -71,7 +71,9 @@ class BenchmarkPipeline():
             benchmarking_metric: BenchmarkMetric | None = None, 
             imported_data_paths: list[str | None] | None = None, 
             store_generated_datasets_paths: list[str | None] | None = None, 
-            store_results_path: str | None = None):
+            store_results_path: str | None = None,
+            results_path = 
+            ):
         
         """Run the Pipeline
 
@@ -130,7 +132,17 @@ class BenchmarkPipeline():
                 else:
                     breaking_complexity = complexity_range[breaking_ind]
                     breaking_time = breaking_complexity * attack_results[i]['gen_time']
-                generators_metrics.append({"Model": self.generators[i], "Speed": attack_results[i]['gen_time'], "Final_Score": benchmark_rank, "breaking_time": breaking_time})
+                generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank,"Benchmark_score":benchmark_metric, "breaking_time": breaking_time})
+
+            df = pd.DataFrame(generators_metrics)
+            df.to_csv(
+                results_path,
+                mode='a' if file_exists else 'w',
+                index=False,
+                header=not file_exists
+            )
+
+            print(f'Results saved to {results_path}')
             plot_generators_ranks(generators_metrics)
             breaking_time_plot(generators_metrics)
 
