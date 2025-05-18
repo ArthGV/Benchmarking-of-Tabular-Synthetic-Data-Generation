@@ -272,7 +272,7 @@ class BenchmarkPipeline():
         classifier=None, 
         cv=5, n_bootstrap=100, 
         random_state=42, 
-        optimize_hyperparams=False,
+        optimize_hyperparams=True,
         preprocess_data=True,
         results_path="results_ml_utility.csv"
         ):
@@ -455,7 +455,7 @@ class BenchmarkPipeline():
             random_search = RandomizedSearchCV(
                 classifier,
                 param_distributions=param_dist,
-                n_iter=10000,  # Number of parameter settings to try
+                n_iter=20,  # Number of parameter settings to try
                 cv=cv,
                 verbose=1,
                 random_state=random_state,
