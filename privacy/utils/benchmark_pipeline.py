@@ -316,7 +316,7 @@ class BenchmarkPipeline():
             generated_data = generator(train_combined_tab, num_samples)
 
             # evaluate the dataset using the ml_utility function with original data
-            row_orig = {"generator": repr(generator), "dataset": "original","test_score": result['test_score']}
+            row_orig = {"Model": repr(generator), "dataset": "original","test_score": result['test_score']}
             # print('Results for original data:', result)
 
             # evaluate the dataset using the ml_utility function with generated data
@@ -328,7 +328,7 @@ class BenchmarkPipeline():
                 X_gen, y_gen, X_test, y_test, classifier,
                   cv, n_bootstrap, random_state,optimize_hyperparams,
                   preprocess_data,categorical_cols=cat_features)
-            row_gen = {"generator": repr(generator), "dataset": "generated", "test_score": result_gen['test_score']}
+            row_gen = {"Model": repr(generator), "dataset": "generated", "test_score": result_gen['test_score']}
             # print('Results for generated data:', result_gen)
             rows.append(row_orig)
             rows.append(row_gen)
@@ -567,7 +567,7 @@ class BenchmarkPipeline():
             generator = self.generators[i]
             generated_data = generator(self.data, num_samples)
             dcr_vals = self._compute_dcr(self.data.data, generated_data.data, metric, cat_features)
-            row = {"generator": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
+            row = {"Model": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
             rows.append(row)
         
         # save the results to a csv file
