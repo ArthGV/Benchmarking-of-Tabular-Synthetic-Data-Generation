@@ -134,7 +134,6 @@ class BenchmarkPipeline():
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
                 # compute generator breaking time
                 breaking_complexity = self._find_breaking_point(complexity_range, M_0, M_1, baseline_score)
-                print(breaking_complexity)
                 if breaking_complexity < 0:
                     breaking_time = -1
                     print(f'{self.generators[i]} was not broken by the attack')
@@ -218,7 +217,6 @@ class BenchmarkPipeline():
                 if breaking_1 > c_b or breaking_1 < c_p:
                     breaking_1 = -1
                 breaking_point = max(breaking_0, breaking_1)
-                print('-------------', breaking_point)
                 return breaking_point
         return -1  # return -1 if no such point exists
     
