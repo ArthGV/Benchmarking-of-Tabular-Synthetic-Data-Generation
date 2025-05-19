@@ -21,6 +21,7 @@ import gower
 from scipy.stats import randint, uniform
 from sklearn.metrics import f1_score, classification_report
 from tapas.datasets.data_description import DataDescription
+from sklearn.preprocessing import minmax_scale
 
 class BenchmarkPipeline():
     def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
@@ -550,7 +551,34 @@ class BenchmarkPipeline():
         dist, _ = nn.kneighbors(synth_arr, return_distance=True)
         return dist.ravel()
 
+    def data_results(self):
+        results_complexity_break = pd.read_csv("results_complexity_break.csv")
+        results_dcr = pd.read_csv("results_dcr.csv")
+        results_utility = pd.read_csv("results_ml_utility.csv")
 
+        # normalize the results in complexity_break
+        max_speed = results_complexity_break["Speed"].max() + 0.1*results_complexity_break["Speed"].max()
+        min_speed = results_complexity_break["Speed"].min() - 0.1*results_complexity_break["Speed"].min()
+        results_complexity_break["Speed"] = (results_complexity_break["Speed"] - min_speed) / (max_speed - min_speed)
+
+        results_complexity_break["Benchmark_score"] = 1 - results_complexity_break["Benchmark_score"]
+        mask = results_complexity_break['breaking_time'] != -1
+        bt_min = results_complexity_break.loc[mask, 'breaking_time'].min()
+        bt_max = results_complexity_break.loc[mask, 'breaking_time'].max()
+        results_complexity_break.loc[mask, 'breaking_time'] =  (results_complexity_break['breaking_time'] - bt_min) / (bt_max*1.1 - bt_min)
+        results_complexity_break.loc[~mask, 'breaking_time'] = 1
+
+        # normalize the results in dcr
+        results_dcr["dcr_mean"] = minmax_scale(results_dcr["dcr_mean"])
+
+        # normalize the results in ml_utility
+        results_utility = results_utility[results_utility["dataset"] == "generated"]
+
+        results = pd.merge(results_complexity_break, results_dcr, on="Model")
+        results = pd.merge(results, results_utility, on="Model")
+        results = results.rename(columns={"Benchmark_score": "AUC_MIA", "dcr_mean": "DCR", "test_score": "f1_score"})
+        return results
+    
     def average_dcr(self, num_samples = None, metric='euclidean',results_path="results_dcr.csv",):
         """
         Compute average DCR across synthetic samples.
@@ -579,4 +607,6 @@ class BenchmarkPipeline():
             header=not file_exists
         )
         return np.mean(dcr_vals)
+    
+    
 
