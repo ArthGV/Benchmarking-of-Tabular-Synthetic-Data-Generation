@@ -1,5 +1,7 @@
 import os
 import tapas
+import yaml
+from datetime import datetime
 import time
 import numpy as np
 from typing import Literal
@@ -16,14 +18,20 @@ from sklearn.model_selection import cross_val_score, RandomizedSearchCV, train_t
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.neighbors import NearestNeighbors
-from sklearn.preprocessing import MinMaxScaler
 import gower
 from scipy.stats import randint, uniform
-from sklearn.metrics import f1_score, classification_report
+from sklearn.metrics import f1_score
 from tapas.datasets.data_description import DataDescription
 from sklearn.preprocessing import minmax_scale
 
 class BenchmarkPipeline():
+
+    STORED_DATA_FOLDER: str = 'data/generated_datasets/'
+    RESULTS_FOLDER: str = 'results/'
+    RUN_FOLDER: str = RESULTS_FOLDER
+    RESULTS_PLOT_FOLDER: str =  RUN_FOLDER + 'plots/'
+
+
     def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
         
         self.data = data
@@ -87,7 +95,6 @@ class BenchmarkPipeline():
             dcr_num_samples: int = 100,
             generate_data = True,
             store_results = True,
-            # results_path="results/results_complexity_break.csv"
             ):
         
         """Run the Pipeline
@@ -104,11 +111,18 @@ class BenchmarkPipeline():
             store_generated_datasets_paths (list[str  |  None] | None, optional): Put path where you want to store generated data at the position corresponding to the generator, or None not to store them. Put the all argument to None to store nothing.
             store_results_path (str | None, optional): Path to store the results of the attack. If None, the results are not stored.
         """
-        # ensure saving file exists
+        now = datetime.now()
+        formatted_now = now.strftime("%Y-%m-%d_%H:%M")
+        self.RUN_FOLDER = self.RUN_FOLDER + formatted_now + '/'
+        self.RESULTS_PLOT_FOLDER: str =  self.RUN_FOLDER + 'plots/'
+
+
         if store_results:
-            results_path = "results/results_complexity_break.csv"
-            file_exists = os.path.isfile(results_path)
-        rows = []
+            os.makedirs(self.RUN_FOLDER, exist_ok=True)
+            os.makedirs(self.RESULTS_PLOT_FOLDER, exist_ok=True)
+        
+        if generate_data:
+            os.makedirs(self.STORED_DATA_FOLDER, exist_ok=True)        
 
         self.baseline_score = get_baseline_score(self.attacker_data, self.target_record, num_bins=25, )
         attack_results = []
@@ -125,12 +139,12 @@ class BenchmarkPipeline():
                 fig, axes = single_plot(np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results:
-                    fig.savefig("results/plots/" + repr(self.generators[i]) + ".png", dpi=300)
+                    fig.savefig(self.RESULTS_PLOT_FOLDER + repr(self.generators[i]) + "_single_" + ".png", dpi=300)
             if plot_style in ['double', 'all']:
                 fig, axes = double_plot(np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
                 plt.show()
-                if store_results is not None:
-                    fig.savefig("results/plots/" + repr(self.generators[i]) + ".png", dpi=300)
+                if store_results:
+                    fig.savefig(self.RESULTS_PLOT_FOLDER + repr(self.generators[i]) + "_double_" + ".png", dpi=300)
 
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
@@ -154,6 +168,8 @@ class BenchmarkPipeline():
                 generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank,"Benchmark_score":benchmark_metric, "breaking_time": breaking_time})
 
             if store_results:
+                results_path = self.RUN_FOLDER + 'generators_metrics.csv'
+                file_exists = os.path.isfile(results_path)
                 df = pd.DataFrame(generators_metrics)
                 df.to_csv(
                     results_path,
@@ -161,28 +177,35 @@ class BenchmarkPipeline():
                     index=False,
                     header=not file_exists
                 )
-                print(f'Results saved to {results_path}')
+                print(f'Generators Metrics saved to {results_path}')
 
-            plot_generators_ranks(generators_metrics,store_results=store_results)
-            breaking_time_plot(generators_metrics,store_results=store_results)
+                results_path = self.RUN_FOLDER + 'attack_results.yaml'
+                attack_results_dict = {}
+                for gen in self.generators:
+                    attack_results_dict[repr(gen)] = attack_results[i]
+                with open(results_path, "w") as file:
+                    yaml.dump(attack_results_dict, file, default_flow_style=False)
+                print(f'Attack results saved to {results_path}')
 
+
+
+            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
+            breaking_time_plot(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
+            
             self._ml_utility(target_col=classification_target_col, num_samples=classification_num_samples, 
                             test_size=classification_test_size, classifier=classification_classifier, cv=classification_cv, 
                             n_bootstrap=classification_n_bootstrap, random_state=classification_random_state, 
                             optimize_hyperparams=classification_optimize_hyperparams, preprocess_data=classification_preprocess_data, store_results=store_results)
             self._average_dcr(num_samples = dcr_num_samples, metric=dcr_metric,store_results=store_results)
 
-            results = self._data_results()
-            plot_radar_comparison(results, store_results=store_results)
-
-            
-
+            results = self._data_results(generators_metrics)
+            plot_radar_comparison(results, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
 
 
     def _attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, p: float, generate_data: bool):
         print('Attacking :', repr(self.generators[generator_ind]))
         number_of_generated_shadow_datasets = int(complexity_range[-1] * (1/p))
-        path_data = "data/generated_datasets/" + repr(self.generators[generator_ind]) + ".pkl"
+        path_data = self.STORED_DATA_FOLDER + repr(self.generators[generator_ind]) + ".pkl"
         if generate_data:
             shadow_data_pool, gen_time = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_data)
         else:
@@ -210,14 +233,13 @@ class BenchmarkPipeline():
                 pred_labels = self.attack.attack(test_datasets)
                 P_0.extend([p for i, p in enumerate(pred_labels) if truth_labels[i] == False])
                 P_1.extend([p for i, p in enumerate(pred_labels) if truth_labels[i] == True])
-            M_0.append(np.mean(P_0))
-            S_0.append(np.std(P_0))
-            M_1.append(np.mean(P_1))
-            S_1.append(np.std(P_1))
+            M_0.append(float(np.mean(P_0)))
+            S_0.append(float(np.std(P_0)))
+            M_1.append(float(np.mean(P_1)))
+            S_1.append(float(np.std(P_1)))
         return M_0, S_0, M_1, S_1, gen_time
     
     def _find_breaking_point(self, complexity_range, mean_0, mean_1, baseline_score):
-        print('---new function--')
         for i in range(len(mean_0)):
             if all(x > baseline_score for x in mean_1[i:]) and all(x < baseline_score for x in mean_0[i:]):
                 if i == 0:
@@ -256,7 +278,7 @@ class BenchmarkPipeline():
         shadow_datasets.extend(random.sample(shadow_dataset_pool[1], int(number_of_shadow_models / 2)))
         return shadow_datasets
     
-    def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str | None = None):
+    def _generate_shadow_datasets(self, threat_model, number_of_train_datasets: int, path_to_store_generated_datasets: str):
         start_time = time.time()
         shadow_datasets, shadow_labels = threat_model.generate_training_samples(number_of_train_datasets, ignore_memory=True)
         generation_time = (time.time() - start_time) * 1000000 # in microseconds
@@ -264,14 +286,13 @@ class BenchmarkPipeline():
         shadow_data = list(zip(shadow_datasets, shadow_labels))
 
 
-        if path_to_store_generated_datasets:
-            with open(path_to_store_generated_datasets, "wb") as f:
-                data_to_save = {
-                    "shadow_data": shadow_data,
-                    "gen_time": normalized_gen_time
-                }
-                pickle.dump(data_to_save, f)
-                print(f'Generated datasest of {threat_model.atk_know_gen.generator} stored at :{path_to_store_generated_datasets}')
+        with open(path_to_store_generated_datasets, "wb") as f:
+            data_to_save = {
+                "shadow_data": shadow_data,
+                "gen_time": normalized_gen_time
+            }
+            pickle.dump(data_to_save, f)
+            print(f'Generated datasest of {threat_model.atk_know_gen.generator} stored at :{path_to_store_generated_datasets}')
 
         shadow_data_0 = [sd for sd in shadow_data if not sd[1]]
         shadow_data_1 = [sd for sd in shadow_data if sd[1]]
@@ -309,7 +330,7 @@ class BenchmarkPipeline():
 
         # ensure saving file exists
         if store_results:
-            results_path="results/results_ml_utility.csv"
+            results_path= self.RUN_FOLDER + "results_ml_utility.csv"
             file_exists = os.path.isfile(results_path)
         rows = []
 
@@ -577,10 +598,10 @@ class BenchmarkPipeline():
         dist, _ = nn.kneighbors(synth_arr, return_distance=True)
         return dist.ravel()
 
-    def _data_results(self):
-        results_complexity_break = pd.read_csv("results/results_complexity_break.csv")
-        results_dcr = pd.read_csv("results/results_dcr.csv")
-        results_utility = pd.read_csv("results/results_ml_utility.csv")
+    def _data_results(self, generators_metrics):
+        results_complexity_break = pd.DataFrame(generators_metrics)
+        results_dcr = pd.read_csv(self.RUN_FOLDER + "results_dcr.csv")
+        results_utility = pd.read_csv(self.RUN_FOLDER + "results_ml_utility.csv")
 
         # normalize the results in complexity_break
         max_speed = results_complexity_break["Speed"].max() + 0.1*results_complexity_break["Speed"].max()
@@ -614,7 +635,7 @@ class BenchmarkPipeline():
 
         # ensure saving file exists
         if store_results:
-            results_path="results/results_dcr.csv"
+            results_path= self.RUN_FOLDER + "results_dcr.csv"
             file_exists = os.path.isfile(results_path)
         rows = []
         

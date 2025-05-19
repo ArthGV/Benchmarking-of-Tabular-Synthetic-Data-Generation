@@ -67,7 +67,7 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
     return fig, axes
 
 
-def plot_generators_ranks(models_metrics, tiers_order=None,store_results=True):
+def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, result_plot_folder=None):
     if tiers_order is None:
         tiers_order = ["A", "B", "C", "D", "E", "F", "U"]
 
@@ -131,9 +131,9 @@ def plot_generators_ranks(models_metrics, tiers_order=None,store_results=True):
     plt.show()
     if store_results:
         # Save the figure
-        fig.savefig("results/plots/generator_ranks.png", dpi=300, bbox_inches='tight')
+        fig.savefig(result_plot_folder + "generator_ranks.png", dpi=300, bbox_inches='tight')
 
-def breaking_time_plot(models_metrics,store_results=True):
+def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=None):
 
     # Create the figure and axis
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -171,7 +171,7 @@ def breaking_time_plot(models_metrics,store_results=True):
     plt.show()
     if store_results:
         # Save the figure
-        fig.savefig("results/plots/breaking_time.png", dpi=300, bbox_inches='tight')
+        fig.savefig(result_plot_folder + "breaking_time.png", dpi=300, bbox_inches='tight')
 
 def plot_radar_comparison(
     df,
@@ -181,7 +181,8 @@ def plot_radar_comparison(
     legend_loc="upper right",
     legend_bbox=(1.4, 1.1),
     fill_alpha=0.25,
-    store_results=True
+    store_results=True,
+    result_plot_folder=None
 ):
     """
     Draws a radar chart comparing models on the given metrics.
@@ -232,5 +233,5 @@ def plot_radar_comparison(
     plt.show()
     if store_results:
     # Save the figure
-        fig.savefig("results/plots/spider_plot.png", dpi=300, bbox_inches='tight')
+        fig.savefig(result_plot_folder + "spider_plot.png", dpi=300, bbox_inches='tight')
 
