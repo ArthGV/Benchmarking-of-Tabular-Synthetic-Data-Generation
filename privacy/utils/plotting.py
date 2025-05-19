@@ -67,7 +67,7 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
     return fig, axes
 
 
-def plot_generators_ranks(models_metrics, tiers_order=None):
+def plot_generators_ranks(models_metrics, tiers_order=None,store_results=True):
     if tiers_order is None:
         tiers_order = ["A", "B", "C", "D", "E", "F", "U"]
 
@@ -129,8 +129,11 @@ def plot_generators_ranks(models_metrics, tiers_order=None):
     plt.legend([], [], frameon=False)
     plt.tight_layout()
     plt.show()
+    if store_results:
+        # Save the figure
+        fig.savefig("results/plots/generator_ranks.png", dpi=300, bbox_inches='tight')
 
-def breaking_time_plot(models_metrics):
+def breaking_time_plot(models_metrics,store_results=True):
 
     # Create the figure and axis
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -166,3 +169,68 @@ def breaking_time_plot(models_metrics):
     ax.legend()
     plt.grid(True)
     plt.show()
+    if store_results:
+        # Save the figure
+        fig.savefig("results/plots/breaking_time.png", dpi=300, bbox_inches='tight')
+
+def plot_radar_comparison(
+    df,
+    metrics=['Speed', 'AUC_MIA', 'breaking_time', 'DCR', 'f1_score'],
+    title="Generators Comparison",
+    figsize=(8, 6),
+    legend_loc="upper right",
+    legend_bbox=(1.4, 1.1),
+    fill_alpha=0.25,
+    store_results=True
+):
+    """
+    Draws a radar chart comparing models on the given metrics.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Must contain a 'Model' column and one column per metric.
+    metrics : list of str, optional
+        Column names to plot. Defaults to
+        ['speed', 'AUC_MIA', 'breaking_time', 'DCR', 'f1_score'].
+    title : str
+        Plot title.
+    figsize : tuple (width, height)
+        Figure size in inches.
+    legend_loc : str
+        Location specifier for plt.legend().
+    legend_bbox : tuple (x, y)
+        bbox_to_anchor for legend to move it farther out.
+    fill_alpha : float
+        Alpha for the filled area under each line.
+    """
+    if metrics is None:
+        metrics = ['speed', 'AUC_MIA', 'breaking_time', 'DCR', 'f1_score']
+
+    N = len(metrics)
+    # compute angles and close the loop
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=figsize, subplot_kw={'polar': True})
+
+    for _, row in df.iterrows():
+        values = [row[m] for m in metrics]
+        values += values[:1]
+        ax.plot(angles, values, label=row['Model'])
+        ax.fill(angles, values, alpha=fill_alpha)
+
+    # set labels
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(metrics)
+    ax.set_title(title)
+
+    # push legend out
+    ax.legend(loc=legend_loc, bbox_to_anchor=legend_bbox)
+
+    plt.tight_layout()
+    plt.show()
+    if store_results:
+    # Save the figure
+        fig.savefig("results/plots/spider_plot.png", dpi=300, bbox_inches='tight')
+
