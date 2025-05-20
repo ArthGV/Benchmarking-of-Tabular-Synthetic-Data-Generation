@@ -115,16 +115,31 @@ class BenchmarkPipeline():
         formatted_now = now.strftime("%Y-%m-%d_%H:%M")
         self.RUN_FOLDER = self.RUN_FOLDER + formatted_now + '/'
         self.RESULTS_PLOT_FOLDER: str =  self.RUN_FOLDER + 'plots/'
-
-
         if store_results:
             os.makedirs(self.RUN_FOLDER, exist_ok=True)
             os.makedirs(self.RESULTS_PLOT_FOLDER, exist_ok=True)
         
         if generate_data:
-            os.makedirs(self.STORED_DATA_FOLDER, exist_ok=True)        
+            os.makedirs(self.STORED_DATA_FOLDER, exist_ok=True)
 
-        self.baseline_score = get_baseline_score(self.attacker_data, self.target_record, num_bins=25, )
+        self.baseline_score = get_baseline_score(self.attacker_data, self.target_record, num_bins=25) 
+
+        if store_results:
+            metadata = {
+                'dataset' : self.data.description.label,
+                'generators' : [repr(g) for g in self.generators],
+                'benchmarking_metric' : repr(benchmarking_metric),
+                'complexity_range' : complexity_range,
+                'run_per_range' : run_per_range,
+                'number_of_tests' : number_of_tests,
+                'p' : p,
+                'size_of_datasets': self.size_of_datasets,
+                'baseline_score' : round(float(self.baseline_score[0]), 3)
+            }
+            with open(self.RUN_FOLDER + 'metadata.yaml', "w") as file:
+                yaml.dump(metadata, file, default_flow_style=False)   
+
+        
         attack_results = []
         for i in range(len(self.generators)):
             M_0, S_0, M_1, S_1, gen_time = self._attack_one_generator(i, complexity_range, run_per_range, number_of_tests, p, generate_data)
