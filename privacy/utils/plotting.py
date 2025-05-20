@@ -147,7 +147,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
     y = []
     for gen in range(len(models_metrics)):
         x.append(models_metrics[gen]["Speed"])
-        y.append(models_metrics[gen]["breaking_time"])
+        y.append(models_metrics[gen]["Breaking_Time"])
     # Determine plot limits
     max_scale = max(max(x), max(y)) * 1.1
     ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='upper', cmap='viridis', alpha=0.7)
@@ -175,7 +175,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
 
 def plot_radar_comparison(
     df,
-    metrics=['Speed', 'AUC_MIA', 'breaking_time', 'DCR', 'f1_score'],
+    metrics=['Speed', 'AUC_MIA', 'Breaking_Time', 'DCR', 'Utility'],
     title="Generators Comparison",
     figsize=(8, 6),
     legend_loc="upper right",
@@ -193,7 +193,7 @@ def plot_radar_comparison(
         Must contain a 'Model' column and one column per metric.
     metrics : list of str, optional
         Column names to plot. Defaults to
-        ['speed', 'AUC_MIA', 'breaking_time', 'DCR', 'f1_score'].
+        ['Speed', 'AUC_MIA', 'Breaking_Time', 'DCR', 'Utility'].
     title : str
         Plot title.
     figsize : tuple (width, height)
@@ -205,8 +205,6 @@ def plot_radar_comparison(
     fill_alpha : float
         Alpha for the filled area under each line.
     """
-    if metrics is None:
-        metrics = ['speed', 'AUC_MIA', 'breaking_time', 'DCR', 'f1_score']
 
     N = len(metrics)
     # compute angles and close the loop

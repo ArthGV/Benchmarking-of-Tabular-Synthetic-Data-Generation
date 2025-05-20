@@ -14,7 +14,7 @@ from utils.basegenerators import BenchmarkGenerator
 import matplotlib.pyplot as plt
 import pandas as pd
 from xgboost import XGBClassifier
-from sklearn.model_selection import cross_val_score, RandomizedSearchCV, train_test_split
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.neighbors import NearestNeighbors
@@ -165,7 +165,7 @@ class BenchmarkPipeline():
                     print(f'{self.generators[i]} was not broken by the attack')
                 else:
                     breaking_time = breaking_complexity * attack_results[i]['gen_time']
-                generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank,"Benchmark_score":benchmark_metric, "breaking_time": breaking_time})
+                generators_metrics.append({"Model": repr(self.generators[i]), "Speed": attack_results[i]['gen_time'], "Benchmark_rank":benchmark_rank, "Benchmark_score":benchmark_metric, "Breaking_Time": breaking_time})
 
             if store_results:
                 results_path = self.RUN_FOLDER + 'generators_metrics.csv'
@@ -193,13 +193,13 @@ class BenchmarkPipeline():
             breaking_time_plot(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
             
             self._ml_utility(target_col=classification_target_col, num_samples=classification_num_samples, 
-                            test_size=classification_test_size, classifier=classification_classifier, cv=classification_cv, 
-                            n_bootstrap=classification_n_bootstrap, random_state=classification_random_state, 
+                            test_size=classification_test_size, classifier=classification_classifier, cv=classification_cv,
+                            random_state=classification_random_state, 
                             optimize_hyperparams=classification_optimize_hyperparams, preprocess_data=classification_preprocess_data, store_results=store_results)
             self._average_dcr(num_samples = dcr_num_samples, metric=dcr_metric,store_results=store_results)
 
-            results = self._data_results(generators_metrics)
-            plot_radar_comparison(results, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
+            results = self._data_results(generators_metrics, repr(benchmarking_metric))
+            plot_radar_comparison(results, metrics=['Speed', repr(benchmarking_metric), 'Breaking_Time', 'DCR', 'Utility'], store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
 
 
     def _attack_one_generator(self, generator_ind: int,complexity_range: list[int], run_per_range: int, number_of_tests: int, p: float, generate_data: bool):
@@ -316,7 +316,7 @@ class BenchmarkPipeline():
         num_samples=None,
         test_size=0.2,
         classifier=None, 
-        cv=5, n_bootstrap=100, 
+        cv=5,
         random_state=42, 
         optimize_hyperparams=True,
         preprocess_data=True,
@@ -355,7 +355,7 @@ class BenchmarkPipeline():
         print('Evaluating original data')
         result = self._evaluate_ml_pipeline(
                 X_train, y_train, X_test, y_test, classifier, 
-                cv, n_bootstrap, random_state,optimize_hyperparams,
+                cv, random_state,optimize_hyperparams,
                 preprocess_data, cat_features)
 
         for i in range(len(self.generators)):
@@ -374,7 +374,7 @@ class BenchmarkPipeline():
             print('Evaluating generated data')
             result_gen = self._evaluate_ml_pipeline(
                 X_gen, y_gen, X_test, y_test, classifier,
-                  cv, n_bootstrap, random_state,optimize_hyperparams,
+                  cv, random_state,optimize_hyperparams,
                   preprocess_data,categorical_cols=cat_features)
             row_gen = {"Model": repr(generator), "dataset": "generated", "test_score": result_gen['test_score']}
             # print('Results for generated data:', result_gen)
@@ -399,7 +399,6 @@ class BenchmarkPipeline():
         y_test,
         classifier=None,
         cv: int = 5,
-        n_bootstrap: int = 100,
         random_state: int = 42,
         optimize_hyperparams: bool = True,
         preprocess_data : bool = True,
@@ -410,7 +409,7 @@ class BenchmarkPipeline():
         1. Splits the dataset into train and test.
         2. Performs k-fold cross-validation on the train set.
         3. Fits the classifier on the entire train set.
-        4. Evaluates on the test set and computes a bootstrap confidence interval.
+        4. Evaluates on the test set.
 
         Parameters:
             X_train, y_train : training data
@@ -419,8 +418,6 @@ class BenchmarkPipeline():
                 If None, XGBClassifier will be used
             cv : int, default=5
                 Number of cross-validation folds
-            n_bootstrap : int, default=1000
-                Number of bootstrap iterations for CI calculation
             random_state : int, default=42
                 Random seed for reproducibility
             optimize_hyperparams : bool, default=True
@@ -432,8 +429,6 @@ class BenchmarkPipeline():
         """
         # Default classifier: XGBoost
         if preprocess_data:
-            # print("Preprocessing data...")
-            
             # Convert to pandas DataFrame if not already
             if not isinstance(X_train, pd.DataFrame):
                 X_train = pd.DataFrame(X_train)
@@ -442,8 +437,6 @@ class BenchmarkPipeline():
             
             # numerical columns are the ones not in categorical_cols
             numerical_cols = [col for col in X_train.columns if col not in categorical_cols]
-            
-            # print(f"Detected {len(categorical_cols)} categorical and {len(numerical_cols)} numerical features")
             
             # Create preprocessor
             preprocessor = ColumnTransformer(
@@ -464,10 +457,6 @@ class BenchmarkPipeline():
                 label_encoder = LabelEncoder()
                 y_train_encoded = label_encoder.fit_transform(y_train)
                 y_test_encoded = label_encoder.transform(y_test)
-                
-                # Map class names for later reference
-                class_mapping = {i: label for i, label in enumerate(label_encoder.classes_)}
-                # print(f"Target class mapping: {class_mapping}")
             else:
                 y_train_encoded = y_train
                 y_test_encoded = y_test
@@ -481,12 +470,9 @@ class BenchmarkPipeline():
             classifier = XGBClassifier(use_label_encoder=False,
                                     eval_metric='logloss',
                                     random_state=random_state)
-        # print(f"Using classifier: {classifier}")
         
         # Hyperparameter optimization
-        if optimize_hyperparams and isinstance(classifier, XGBClassifier):
-            # print("Performing hyperparameter optimization...")
-            
+        if optimize_hyperparams and isinstance(classifier, XGBClassifier):    
             # Define the hyperparameter search space
             param_dist = {
                 'n_estimators':        randint(50, 500),
@@ -515,11 +501,6 @@ class BenchmarkPipeline():
             
             # Get the best classifier
             classifier = random_search.best_estimator_
-        
-        # If no hyperparameter optimization or not XGBoost, do standard cross-validation
-        cv_scores = cross_val_score(classifier, X_train, y_train, cv=cv, scoring='f1')
-        cv_mean = cv_scores.mean()
-        cv_std = cv_scores.std()
 
         # Fit on full training set
         classifier.fit(X_train, y_train)
@@ -527,21 +508,6 @@ class BenchmarkPipeline():
         # Test-set evaluation with f1 score
         y_pred = classifier.predict(X_test)
         f1 = f1_score(y_test, y_pred, average='binary')
-
-        # Bootstrap to get CI
-        # rng = np.random.RandomState(random_state)
-        # test_scores = []
-        # n_test = len(y_test)
-        # X_test_arr = X_test if isinstance(X_test, np.ndarray) else X_test.values if hasattr(X_test, 'values') else X_test
-        # y_test_arr = y_test if isinstance(y_test, np.ndarray) else y_test.values if hasattr(y_test, 'values') else y_test
-        # for _ in range(n_bootstrap):
-        #     idx = rng.choice(n_test, n_test, replace=True)
-        #     test_scores.append(
-        #         classifier.score(X_test_arr[idx], y_test_arr[idx])
-        #     )
-        # lower = np.percentile(test_scores, 2.5)
-        # upper = np.percentile(test_scores, 97.5)
-        # print(f"95% CI for test score: [{lower:.4f}, {upper:.4f}]")
 
         return {
             'test_score': f1,
@@ -553,9 +519,8 @@ class BenchmarkPipeline():
         """
         Given a DataFrame `df` and a list of column names `selected_cols`,
         return a binary list of length df.shape[1] where each position is
-        1 iff that column is in selected_cols, else 0.
+        1 if that column is in selected_cols, else 0.
         """
-        # Method 1: list comprehension
         return [1 if col in selected_cols else 0 for col in df.columns]
 
     def _compute_dcr(self, real_data, synth_data, metric='euclidean', cat_features=None):
@@ -598,22 +563,22 @@ class BenchmarkPipeline():
         dist, _ = nn.kneighbors(synth_arr, return_distance=True)
         return dist.ravel()
 
-    def _data_results(self, generators_metrics):
+    def _data_results(self, generators_metrics, metric_name):
         results_complexity_break = pd.DataFrame(generators_metrics)
         results_dcr = pd.read_csv(self.RUN_FOLDER + "results_dcr.csv")
         results_utility = pd.read_csv(self.RUN_FOLDER + "results_ml_utility.csv")
 
         # normalize the results in complexity_break
-        max_speed = results_complexity_break["Speed"].max() + 0.1*results_complexity_break["Speed"].max()
-        min_speed = results_complexity_break["Speed"].min() - 0.1*results_complexity_break["Speed"].min()
+        max_speed = 1.1 * results_complexity_break["Speed"].max()
+        min_speed = 0.9 * results_complexity_break["Speed"].min()
         results_complexity_break["Speed"] = (results_complexity_break["Speed"] - min_speed) / (max_speed - min_speed)
 
         results_complexity_break["Benchmark_score"] = 1 - results_complexity_break["Benchmark_score"]
-        mask = results_complexity_break['breaking_time'] != -1
-        bt_min = results_complexity_break.loc[mask, 'breaking_time'].min()
-        bt_max = results_complexity_break.loc[mask, 'breaking_time'].max()
-        results_complexity_break.loc[mask, 'breaking_time'] =  (results_complexity_break['breaking_time'] - bt_min) / (bt_max*1.1 - bt_min)
-        results_complexity_break.loc[~mask, 'breaking_time'] = 1
+        mask = results_complexity_break['Breaking_Time'] != -1
+        bt_min = results_complexity_break.loc[mask, 'Breaking_Time'].min()
+        bt_max = results_complexity_break.loc[mask, 'Breaking_Time'].max()
+        results_complexity_break.loc[mask, 'Breaking_Time'] =  (results_complexity_break['Breaking_Time'] - bt_min) / (bt_max * 1.1 - bt_min)
+        results_complexity_break.loc[~mask, 'Breaking_Time'] = 1
 
         # normalize the results in dcr
         results_dcr["dcr_mean"] = minmax_scale(results_dcr["dcr_mean"])
@@ -623,7 +588,7 @@ class BenchmarkPipeline():
 
         results = pd.merge(results_complexity_break, results_dcr, on="Model")
         results = pd.merge(results, results_utility, on="Model")
-        results = results.rename(columns={"Benchmark_score": "AUC_MIA", "dcr_mean": "DCR", "test_score": "f1_score"})
+        results = results.rename(columns={"Benchmark_score": metric_name, "dcr_mean": "DCR", "test_score": "Utility"})
         return results
     
     def _average_dcr(self, num_samples = None, metric='euclidean',store_results=True, results_path="results_dcr.csv"):

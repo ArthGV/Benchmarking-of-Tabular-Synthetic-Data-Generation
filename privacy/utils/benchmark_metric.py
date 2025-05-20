@@ -19,9 +19,14 @@ class BenchmarkMetric(ABC):
     def compute_rank(self, complexity: list[int], data_mean: list[float], data_std: list[float], baseline_score: float) -> Literal['A', 'B', 'C', 'D', 'E', 'F', 'U']:
         metric = self.compute_metric(complexity, data_mean, data_std, baseline_score)
         return self.compute_rank_from_metric(metric)
+    
+    def __repr__(self):
+        return self.label
 
 #Example of a BenchmarkMetric implementation using Area Under the Curve (AUC)
 class AUCMetric(BenchmarkMetric):
+
+    label:str = 'AUC_Metric'
 
     def __init__(self, rank_range: list[float] = [0, 0.17, 0.33, 0.5, 0.67, 0.83]):
         self.rank_range = rank_range
