@@ -340,13 +340,6 @@ class BenchmarkPipeline():
         description = DataDescription(self.data.description.schema)
         dataset = self.data.data # get the data from the dataset as a pandas dataframe
 
-        # ensure saving file exists
-        if store_results:
-            results_path= self.RUN_FOLDER + "results_ml_utility.csv"
-            file_exists = os.path.isfile(results_path)
-        rows = []
-
-        
         y = dataset[target_col]
         X = dataset.drop(columns=[target_col])
         X_train, X_test, y_train, y_test = train_test_split(
@@ -369,15 +362,11 @@ class BenchmarkPipeline():
                 X_train, y_train, X_test, y_test, classifier, 
                 cv, random_state,optimize_hyperparams,
                 preprocess_data, cat_features)
-
+        rows = []
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
             generated_data = generator(train_combined_tab, num_samples)
-
-            # evaluate the dataset using the ml_utility function with original data
-            row_orig = {"Model": repr(generator), "dataset": "original","test_score": result['test_score']}
-            # print('Results for original data:', result)
 
             # evaluate the dataset using the ml_utility function with generated data
             y_gen = generated_data.data[target_col]
@@ -388,20 +377,21 @@ class BenchmarkPipeline():
                 X_gen, y_gen, X_test, y_test, classifier,
                   cv, random_state,optimize_hyperparams,
                   preprocess_data,categorical_cols=cat_features)
-            row_gen = {"Model": repr(generator), "dataset": "generated", "test_score": result_gen['test_score']}
+            row_gen = {"Model": repr(generator), "test_score_original": result['test_score'], "test_score_generated": result_gen['test_score'], "utility_score": max(1., float(result_gen['test_score'] / result['test_score']))}
             # print('Results for generated data:', result_gen)
-            rows.append(row_orig)
             rows.append(row_gen)
 
         # save the results to a csv file
-        df = pd.DataFrame(rows)
-        df.to_csv(
-            results_path,
-            mode='w',
-            index=False,
-            header=True
-        )
-        print(f'Results saved to {results_path}')
+        if store_results:
+            results_path= self.RUN_FOLDER + "results_ml_utility.csv"
+            df = pd.DataFrame(rows)
+            df.to_csv(
+                results_path,
+                mode='w',
+                index=False,
+                header=True
+            )
+            print(f'Results saved to {results_path}')
 
     def _evaluate_ml_pipeline(
         self,
@@ -581,10 +571,9 @@ class BenchmarkPipeline():
         results_utility = pd.read_csv(self.RUN_FOLDER + "results_ml_utility.csv")
 
         # normalize the results in complexity_break
-        max_speed = 1.1 * results_complexity_break["Speed"].max()
-        min_speed = 0.9 * results_complexity_break["Speed"].min()
-        results_complexity_break["Speed"] = (results_complexity_break["Speed"] - min_speed) / (max_speed - min_speed)
-        results_complexity_break["Speed"] = 1 - results_complexity_break["Speed"]
+        max_speed = 1.05 * results_complexity_break["Speed"].max()
+        min_speed = 0.95 * results_complexity_break["Speed"].min()
+        results_complexity_break["Speed"] = (results_complexity_break["Speed"] - max_speed) / (min_speed - max_speed)
 
         results_complexity_break["Benchmark_score"] = 1 - results_complexity_break["Benchmark_score"]
         mask = results_complexity_break['Breaking_Time'] != -1
@@ -597,11 +586,11 @@ class BenchmarkPipeline():
         results_dcr["dcr_mean"] = minmax_scale(results_dcr["dcr_mean"])
 
         # normalize the results in ml_utility
-        results_utility = results_utility[results_utility["dataset"] == "generated"]
+        results_utility = results_utility[["Model", "utility_score"]]
 
         results = pd.merge(results_complexity_break, results_dcr, on="Model")
         results = pd.merge(results, results_utility, on="Model")
-        results = results.rename(columns={"Benchmark_score": metric_name, "dcr_mean": "DCR", "test_score": "Utility"})
+        results = results.rename(columns={"Benchmark_score": metric_name, "dcr_mean": "DCR", "utility_score": "Utility"})
         return results
     
     def _average_dcr(self, num_samples = None, metric='euclidean',store_results=True, results_path="results_dcr.csv"):
