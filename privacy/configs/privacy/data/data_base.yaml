@@ -1,6 +1,0 @@
-# data base configuration, to make sure that no variables are 
-# forgotten when declaring a new class
-label: ???
-folder: data # relative path
-path: ./${data.folder}/${data.label}
-tapas_data_processor: ???
