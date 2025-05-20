@@ -118,7 +118,6 @@ class BenchmarkPipeline():
         if store_results:
             os.makedirs(self.RUN_FOLDER, exist_ok=True)
             os.makedirs(self.RESULTS_PLOT_FOLDER, exist_ok=True)
-        
         if generate_data:
             os.makedirs(self.STORED_DATA_FOLDER, exist_ok=True)
 
@@ -138,7 +137,6 @@ class BenchmarkPipeline():
             }
             with open(self.RUN_FOLDER + 'metadata.yaml', "w") as file:
                 yaml.dump(metadata, file, default_flow_style=False)   
-
         
         attack_results = []
         for i in range(len(self.generators)):
@@ -174,7 +172,7 @@ class BenchmarkPipeline():
 
                 print(f'{self.generators[i]} : {benchmark_rank}, {benchmark_metric}')
                 # compute generator breaking time
-                breaking_complexity = self._find_breaking_point(complexity_range, M_0, M_1, baseline_score)
+                breaking_complexity = self._find_breaking_point(complexity_range, attack_results[i]['M_0'], attack_results[i]['M_1'], baseline_score)
                 if breaking_complexity < 0:
                     breaking_time = -1
                     print(f'{self.generators[i]} was not broken by the attack')
@@ -196,7 +194,7 @@ class BenchmarkPipeline():
 
                 results_path = self.RUN_FOLDER + 'attack_results.yaml'
                 attack_results_dict = {}
-                for gen in self.generators:
+                for i, gen in enumerate(self.generators):
                     attack_results_dict[repr(gen)] = attack_results[i]
                 with open(results_path, "w") as file:
                     yaml.dump(attack_results_dict, file, default_flow_style=False)
