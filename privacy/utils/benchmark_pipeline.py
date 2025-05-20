@@ -561,8 +561,8 @@ class BenchmarkPipeline():
             if cat_features is not None:
                 # Explicit categorical list
                 cat_features_bin = self._binary_mask_list(real_data, cat_features)
-            D = gower.gower_matrix(real_data, synth_data, cat_features=cat_features_bin)
-            return D.min(axis=1)
+                D = gower.gower_matrix(real_data, synth_data, cat_features=cat_features_bin)
+            return np.min(D, axis=0)
 
         # Numeric-only path
         real_arr = np.asarray(real_data)
@@ -623,9 +623,12 @@ class BenchmarkPipeline():
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
             generated_data = generator(self.data, num_samples)
+            print('Generated data:', generated_data.data)
             dcr_vals = self._compute_dcr(self.data.data, generated_data.data, metric, cat_features)
             row = {"Model": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
             rows.append(row)
+
+        print('Results for generated data:', rows)
         
         # save the results to a csv file
         if store_results:
