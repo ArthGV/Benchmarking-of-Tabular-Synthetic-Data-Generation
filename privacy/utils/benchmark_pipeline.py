@@ -112,7 +112,7 @@ class BenchmarkPipeline():
             store_results_path (str | None, optional): Path to store the results of the attack. If None, the results are not stored.
         """
         now = datetime.now()
-        formatted_now = now.strftime("%Y-%m-%d_%H:%M")
+        formatted_now = now.strftime("%Y_%m_%d_%H_%M")
         self.RUN_FOLDER = self.RUN_FOLDER + formatted_now + '/'
         self.RESULTS_PLOT_FOLDER: str =  self.RUN_FOLDER + 'plots/'
         if store_results:

@@ -1,4 +1,4 @@
-baseline_score: 0.678
+baseline_score: 0.673
 benchmarking_metric: AUC_Metric
 complexity_range:
 - 2
