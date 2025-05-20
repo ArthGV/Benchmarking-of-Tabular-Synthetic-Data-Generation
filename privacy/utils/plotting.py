@@ -152,7 +152,8 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
 
     # Scatter plot
     for gen in range(len(models_metrics)):
-        ax.scatter(x[gen], y[gen], edgecolor='k', label=models_metrics[gen]["Model"])
+        if y[gen] > 0:
+            ax.scatter(x[gen], y[gen], edgecolor='k', label=models_metrics[gen]["Model"])
 
     # x_ex = np.linspace(0.00001, max_scale)
     # ax.plot(x_ex, x_ex**2, color='yellow', linestyle='--', linewidth=2, label='y = x^2')
