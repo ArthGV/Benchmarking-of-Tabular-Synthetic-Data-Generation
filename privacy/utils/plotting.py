@@ -49,12 +49,10 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
 
     fig, axes = plt.subplots(1, 1, figsize=(14, 6))  # Larger plot size for clarity
 
-    axes.plot(complexity, 1 - baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[5])
     axes.scatter(complexity, mean, color=sns.color_palette("Reds")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes.fill_between(complexity, mean - std, mean + std, alpha=0.3, color=sns.color_palette("Reds")[2], label='Std Dev', zorder=2)
     axes.set_title("Generator Results", fontsize=16, fontweight='bold', color='darkred')
     
-
     axes.set_ylim(0, 1)
     axes.set_xlabel("Complexity", fontsize=14, fontweight='bold', color='gray')
     axes.set_ylabel("Probability", fontsize=14, fontweight='bold', color='gray')
