@@ -182,13 +182,12 @@ class BenchmarkPipeline():
 
             if store_results:
                 results_path = self.RUN_FOLDER + 'generators_metrics.csv'
-                file_exists = os.path.isfile(results_path)
                 df = pd.DataFrame(generators_metrics)
                 df.to_csv(
                     results_path,
-                    mode='a' if file_exists else 'w',
+                    mode='w',
                     index=False,
-                    header=not file_exists
+                    header=True
                 )
                 print(f'Generators Metrics saved to {results_path}')
 
@@ -398,9 +397,9 @@ class BenchmarkPipeline():
         df = pd.DataFrame(rows)
         df.to_csv(
             results_path,
-            mode='a' if file_exists else 'w',
+            mode='w',
             index=False,
-            header=not file_exists
+            header=True
         )
         print(f'Results saved to {results_path}')
 
@@ -611,13 +610,8 @@ class BenchmarkPipeline():
         """
         num_samples = num_samples if num_samples else len(self.data.data)
         cat_features = self.data.description.one_hot_cols
-
-        # ensure saving file exists
-        if store_results:
-            results_path= self.RUN_FOLDER + "results_dcr.csv"
-            file_exists = os.path.isfile(results_path)
+            
         rows = []
-        
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
@@ -625,15 +619,15 @@ class BenchmarkPipeline():
             dcr_vals = self._compute_dcr(self.data.data, generated_data.data, metric, cat_features)
             row = {"Model": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
             rows.append(row)
-
         
         # save the results to a csv file
         if store_results:
+            results_path= self.RUN_FOLDER + "results_dcr.csv"
             df = pd.DataFrame(rows)
             df.to_csv(
                 results_path,
-                mode='a' if file_exists else 'w',
+                mode='w',
                 index=False,
-                header=not file_exists
+                header=True
             )
         
