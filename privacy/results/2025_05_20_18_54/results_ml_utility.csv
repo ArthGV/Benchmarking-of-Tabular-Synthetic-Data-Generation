@@ -1,0 +1,5 @@
+Model,dataset,test_score
+Raw,original,0.7057687665942554
+Raw,generated,0.7021897810218978
+PrivBayes_epsilon=1.0,original,0.7057687665942554
+PrivBayes_epsilon=1.0,generated,0.52797783933518
