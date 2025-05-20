@@ -1,22 +1,30 @@
-# Benchmarking-of-Tabular-Synthetic-Data-Generation
-## Installation guide: 
+### This framework was created during the ETH ZÜRICH Data Science Lab of Spring 2025.
 
-After installing micromamba, run the install_tapas_env.sh file to setup the tapas-upgrade environment and install all the packages in the correct order. (alternatively, you can do the installation of the packages manually like described in the readME in the privacy folder) 
+### Contributors:
+- Artheme Gauthier-Villars
+- Zoe Meier
+- Eduard von Bothmer
 
+### Challenge Giver:
+- XXX / Swisscom
 
-IMPORTANT
-- you need to change the path to the correct path of wherever you have your Benchmarking-of-Tabular-Synthetic-Data-Generation project file.
-  
-(if not on macOS): 
-- you might need to change the setup of the shell for micromamba in the first line (eval "$(micromamba shell hook --shell bash)") to work for your specific shell, this is for the terminal on macbook.
-- you might need to change the file paths if on windows (\ vs. /) 
+### Academic Supervisors:
+- XXX / ETH ZÜRICH
 
+# Defender-Attacker Framework for Evaluating Privacy Risks in Synthetic Data Sharing
 
-## After setting up the environment 
-After running the script go into the micromamba environment using: micromamba activate tapas-upgrade, from there i run: 
+This repository implements the experiments and methodology on evaluating privacy risks using a defender/attacker framework in synthetic data sharing. The focus is on quantifying information leakage through Membership Inference Attacks (MIAs).
 
-- python -m ipykernel install --user --name tapas-upgrade --display-name "Python (tapas-upgrade)"
-- micromamba run -n tapas-upgrade jupyter notebook
+# Overview
 
-which opens a tab in the browser, where you can run the notebooks
+We propose a formalized framework to evaluate the privacy risks associated with releasing synthetic datasets. The core idea is to model the interaction between:
+	•	Defender: Owns a private dataset D and generates synthetic data D_s using a known generative model.
+	•	Attacker: Aims to infer whether a specific target record x_T belongs to the private dataset D, given auxiliary public data and knowledge of the generator architecture.
 
+We define two main attack settings:
+	•	Prior Attack: Uses only the publicly available Auxiliary dataset 𝒟̃ to infer membership. This represents a baseline risk without any data release.
+	•	MIA Attack (Membership Inference Attack): Uses the released synthetic data D_s, auxiliary dataset 𝒟̃, and generator metadata to estimate the membership status of x_T.
+
+# Repository Structure
+
+# Installation
