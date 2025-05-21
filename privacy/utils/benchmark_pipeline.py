@@ -377,7 +377,7 @@ class BenchmarkPipeline():
                 X_gen, y_gen, X_test, y_test, classifier,
                   cv, random_state,optimize_hyperparams,
                   preprocess_data,categorical_cols=cat_features)
-            row_gen = {"Model": repr(generator), "test_score_original": result['test_score'], "test_score_generated": result_gen['test_score'], "utility_score": max(1., float(result_gen['test_score'] / result['test_score']))}
+            row_gen = {"Model": repr(generator), "test_score_original": result['test_score'], "test_score_generated": result_gen['test_score'], "utility_score": min(1., float(result_gen['test_score'] / result['test_score']))}
             # print('Results for generated data:', result_gen)
             rows.append(row_gen)
 
