@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.lines import Line2D
 
 def plot(complexity: np.array, mean: np.array, var: np.array = None):
     plt.scatter(complexity, mean, c='red')
@@ -204,19 +205,31 @@ def plot_radar_comparison(
     fill_alpha : float
         Alpha for the filled area under each line.
     """
+    print(df)
+    print(metrics)
 
     N = len(metrics)
-    # compute angles and close the loop
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
     angles += angles[:1]
 
     fig, ax = plt.subplots(figsize=figsize, subplot_kw={'polar': True})
 
+    show_star_legend = False  # Track if we need to show the star explanation
+    star_angle_idx = metrics.index("Breaking_Time")  # Find index of Breaking_Time
+
     for _, row in df.iterrows():
         values = [row[m] for m in metrics]
         values += values[:1]
+
         ax.plot(angles, values, label=row['Model'])
         ax.fill(angles, values, alpha=fill_alpha)
+
+        # Add star if Breaking_Time == 1.05
+        if np.isclose(row['Breaking_Time'], 1.05):
+            star_angle = angles[star_angle_idx]
+            star_value = row['Breaking_Time']
+            ax.plot(star_angle, star_value, marker='*', color='red', markersize=8)
+            show_star_legend = True
 
     # set labels
     ax.set_xticks(angles[:-1])
@@ -226,9 +239,16 @@ def plot_radar_comparison(
     # push legend out
     ax.legend(loc=legend_loc, bbox_to_anchor=legend_bbox)
 
+    # add separate star legend if needed
+    if show_star_legend:
+        star_patch = Line2D([0], [0], marker='*', color='w', label='Model not broken',
+                            markerfacecolor='red', markersize=12)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles=[*handles, star_patch], labels=[*labels, 'Model not broken in given complexity'],
+                  loc=legend_loc, bbox_to_anchor=legend_bbox)
+
     plt.tight_layout()
     plt.show()
     if store_results:
     # Save the figure
         fig.savefig(result_plot_folder + "spider_plot.png", dpi=300, bbox_inches='tight')
-
