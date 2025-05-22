@@ -38,6 +38,19 @@ class BenchmarkGenerator(Generator):
             parts.append(f"{key}={val_str}")
         return "_".join(parts)
 
+    @staticmethod
+    def _format_hyperparameters_for_legend(hyperparams):
+        parts = []
+        for key, value in sorted(hyperparams.items()):
+            if isinstance(value, type):
+                val_str = value.__name__
+            elif hasattr(value, '__name__'):
+                val_str = value.__name__
+            else:
+                val_str = str(value)
+            val_str = re.sub(r'[^a-zA-Z0-9_.-]', '', val_str)
+            parts.append(f"{key}={val_str}")
+        return f"({', '.join(parts)})"
 
     def __repr__(self):
         hyperparameters = self._format_hyperparameters_for_filename(self.params)
@@ -46,9 +59,17 @@ class BenchmarkGenerator(Generator):
             return self._label_
         return f"{self._label_}_{hyperparameters}"
 
+    def get_label_for_legend(self):
+        #pretty formatting of generator label and parameters for plotting legends
+        hyperparameters = self._format_hyperparameters_for_legend(self.params)
+        if not hyperparameters:
+            return self._label_
+        return f"{self._label_} {hyperparameters}"
+
     @property
     def parameters(self):
         return self.params
+
 
 
 
@@ -131,4 +152,3 @@ class ReprosynGenerator(BenchmarkGenerator):
     def label(self):
         """Cherry on top."""
         return self._label
-
