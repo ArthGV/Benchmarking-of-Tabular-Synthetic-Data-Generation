@@ -33,9 +33,9 @@ def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1:
     # Common settings for both subplots
     for ax in axes:
         ax.set_ylim(0, 1)
-        ax.set_xlabel("Complexity", fontsize=14, fontweight='bold', color='gray')
-        ax.set_ylabel("Probability", fontsize=14, fontweight='bold', color='gray')
-        ax.legend(title='Legend', loc='upper left', fontsize=12)
+        ax.set_xlabel("Complexity", fontsize=14, fontweight='normal', color='black')
+        ax.set_ylabel("Probability", fontsize=14, fontweight='normal', color='black')
+        ax.legend(loc='upper left', fontsize=12)
 
         # Add gridlines with less intensity for subtle effect
         ax.grid(True, linestyle='--', alpha=0.5)
@@ -55,9 +55,9 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
     axes.set_title("Generator Results", fontsize=16, fontweight='bold', color='darkred')
     
     axes.set_ylim(0, 1)
-    axes.set_xlabel("Complexity", fontsize=14, fontweight='bold', color='gray')
-    axes.set_ylabel("Accuracy", fontsize=14, fontweight='bold', color='gray')
-    axes.legend(title='Legend', loc='upper left', fontsize=12)
+    axes.set_xlabel("Complexity", fontsize=14, fontweight='normal', color='black')
+    axes.set_ylabel("Accuracy", fontsize=14, fontweight='normal', color='black')
+    axes.legend(loc='upper left', fontsize=12)
     # Add gridlines with less intensity for subtle effect
     axes.grid(True, linestyle='--', alpha=0.5)
 
@@ -93,7 +93,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
         x="Speed",
         y="Tier",
         data=df,
-        size=8,
+        size=7,
         color="black",
         jitter=False,
         dodge=False,
@@ -150,7 +150,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
         y.append(models_metrics[gen]["Breaking_Time"])
     # Determine plot limits
     max_scale = max(max(x), max(y)) * 1.1
-    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='upper', cmap='viridis', alpha=0.7)
+    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='upper', cmap='viridis', alpha=0.5)
 
     # Scatter plot
     for gen in range(len(models_metrics)):
@@ -178,7 +178,7 @@ def plot_radar_comparison(
     df,
     metrics=['Speed', 'AUC_MIA', 'Breaking_Time', 'DCR', 'Utility'],
     title="Generators Comparison",
-    figsize=(10, 6),
+    figsize=(8, 6),
     legend_loc="upper right",
     legend_bbox=(1.7, 1.1),
     fill_alpha=0.2,
@@ -242,7 +242,7 @@ def plot_radar_comparison(
         # Add a star if Breaking_Time == 1.05
         if 'Breaking_Time' in metrics and np.isclose(row['Breaking_Time'], 1.05):
             idx = metrics.index('Breaking_Time')
-            ax.plot(angles[idx], values[idx], marker='*', markersize=12, color='red', label="_nolegend_")
+            ax.plot(angles[idx], values[idx], marker='*', markersize=10, color='red', label="_nolegend_", zorder = 3.5)
             show_star_legend = True
 
     # set labels
@@ -254,14 +254,13 @@ def plot_radar_comparison(
     # push legend out
     ax.legend(loc=legend_loc, bbox_to_anchor=legend_bbox)
 
-    # add separate star legend if needed
+    # add separate star legend
     if show_star_legend:
         star_patch = Line2D([0], [0], marker='*', color='w', label='Model not broken',
-                            markerfacecolor='red', markersize=12)
+                            markerfacecolor='red', markersize=12,)
         handles, labels = ax.get_legend_handles_labels()
         ax.legend(handles=[*handles, star_patch], labels=[*labels, 'Attack not succesfull in given complexity range'],
                   loc=legend_loc, bbox_to_anchor=legend_bbox)
-
 
     plt.tight_layout()
     plt.show()
