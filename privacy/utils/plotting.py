@@ -165,7 +165,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
     # Labels and grid
     plt.xlabel("Generation time [μs / datapoint]", color='black')
     plt.ylabel("Breaking time [μs / datapoint]", color='black')
-    ax.set_title('Generator breaking vs generation times')
+    ax.set_title('Generator breaking vs generation times',fontsize =16)
     ax.set_ylim(0, max_scale)
     ax.legend()
     plt.grid(True)
