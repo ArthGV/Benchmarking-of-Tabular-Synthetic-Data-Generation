@@ -12,7 +12,7 @@ def plot(complexity: np.array, mean: np.array, var: np.array = None):
         plt.scatter(complexity, mean, c='red')
         plt.fill_between(complexity, lower_bound, upper_bound, alpha=.3, color='red')
 
-def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1: np.array, std_1: np.array, baseline_score):
+def double_plot(generator: str, complexity: np.array, mean_0: np.array, std_0: np.array, mean_1: np.array, std_1: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines
     sns.set_palette("muted")  # Muted colors for a more refined look
 
@@ -39,12 +39,12 @@ def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1:
 
         # Add gridlines with less intensity for subtle effect
         ax.grid(True, linestyle='--', alpha=0.5)
-
+    fig.suptitle(generator, color='black', fontsize=16)
     plt.tight_layout()
     # plt.show()
     return fig, axes
 
-def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_score):
+def single_plot(generator: str, complexity: np.array, mean: np.array, std: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines
     sns.set_palette("muted")  # Muted colors for a more refined look
 
@@ -52,7 +52,7 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
 
     axes.scatter(complexity, mean, color=sns.color_palette("Reds")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes.fill_between(complexity, mean - std, mean + std, alpha=0.3, color=sns.color_palette("Reds")[2], label='Std Dev', zorder=2)
-    axes.set_title("Generator Results", fontsize=16, fontweight='bold', color='darkred')
+    axes.set_title("Generator Results: " + generator, fontsize=16, fontweight='bold', color='black')
     
     axes.set_ylim(0, 1)
     axes.set_xlabel("Complexity", fontsize=14, fontweight='normal', color='black')
@@ -257,7 +257,7 @@ def plot_radar_comparison(
     # add separate star legend
     if show_star_legend:
         star_patch = Line2D([0], [0], marker='*', color='w', label='Model not broken',
-                            markerfacecolor='red', markersize=12,)
+                            markerfacecolor='red', markersize=12)
         handles, labels = ax.get_legend_handles_labels()
         ax.legend(handles=[*handles, star_patch], labels=[*labels, 'Attack not succesfull in given complexity range'],
                   loc=legend_loc, bbox_to_anchor=legend_bbox)
