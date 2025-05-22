@@ -81,37 +81,37 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     # ax = plt.gca()
     ax.set_facecolor('white')  # Axes background
 
+
+
     # Add colored bands behind each tier row
     row_colors = ["#4292B9", "#70C4BC", "#8FD79F", "#B2E782", "#FFF54E", "#FED303", "#A9A9A9"]  # Light alternating shades
     for i, tier in enumerate(tiers_order):
-        ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)], zorder=0)
+        ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)],alpha = 0.8, zorder=0)
 
-    # Plot white points
+    # Plot black points
     sns.stripplot(
         x="Speed",
         y="Tier",
         data=df,
-        size=30,
-        color="white",       # Points are white
+        size=8,
+        color="black",
         jitter=False,
         dodge=False,
-        edgecolor="black",   # Optional: black border for visibility
         linewidth=0.5,
         zorder=1
     )
 
     # Annotations
-    for i in range(len(df)):
-        plt.text(
-            df["Speed"].iloc[i],
-            df["Tier"].iloc[i],
-            df["Model"].iloc[i],
-            ha='center',
-            va='center',
-            size='small',
-            color='black',
-            weight='semibold',
-            zorder=2
+    for i, row in df.iterrows():
+        ax.text(
+            row["Speed"],  # same x as dot
+            tiers_order.index(row["Tier"]) + 0.2,  # shift down by 0.15 (use codes for exact numeric y)
+            row["Model"],
+            horizontalalignment='center',
+            verticalalignment='top',  # so text is below the dot
+            fontsize=12,
+            color="black",
+            weight='normal'
         )
 
     # Tier separator lines
@@ -124,6 +124,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
     plt.yticks(color='black')
+    plt.xlim(-1500, df["Speed"].max() * 1.4)
 
     plt.legend([], [], frameon=False)
     plt.tight_layout()
@@ -177,10 +178,10 @@ def plot_radar_comparison(
     df,
     metrics=['Speed', 'AUC_MIA', 'Breaking_Time', 'DCR', 'Utility'],
     title="Generators Comparison",
-    figsize=(8, 6),
+    figsize=(10, 6),
     legend_loc="upper right",
     legend_bbox=(1.7, 1.1),
-    fill_alpha=0.25,
+    fill_alpha=0.2,
     store_results=True,
     result_plot_folder=None
 ):
@@ -213,8 +214,18 @@ def plot_radar_comparison(
 
     fig, ax = plt.subplots(figsize=figsize, subplot_kw={'polar': True})
 
-    show_star_legend = False  # Track if we need to show the star explanation
-    star_angle_idx = metrics.index("Breaking_Time")  # Find index of Breaking_Time
+    show_star_legend = False  #
+    star_angle_idx = metrics.index("Breaking_Time")
+
+    #make line at 1.0 thicker
+    gridlines = ax.yaxis.get_gridlines()
+    if len(gridlines) > 1:
+        gridlines[-1].set_color('black')  # change color (e.g., gray)
+        gridlines[-1].set_alpha(0.9)
+
+    for i, line in enumerate(gridlines):
+        if i != len(gridlines) - 1:
+            line.set_linewidth(0.8)
 
     for _, row in df.iterrows():
         values = [row[m] for m in metrics]
@@ -235,6 +246,7 @@ def plot_radar_comparison(
             show_star_legend = True
 
     # set labels
+    ax.tick_params(axis='x', pad=10)  # increase padding from the axis
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(metrics)
     ax.set_title(title,fontsize=16,pad=50)
@@ -247,8 +259,9 @@ def plot_radar_comparison(
         star_patch = Line2D([0], [0], marker='*', color='w', label='Model not broken',
                             markerfacecolor='red', markersize=12)
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles=[*handles, star_patch], labels=[*labels, 'Model not broken in given complexity'],
+        ax.legend(handles=[*handles, star_patch], labels=[*labels, 'Attack not succesfull in given complexity range'],
                   loc=legend_loc, bbox_to_anchor=legend_bbox)
+
 
     plt.tight_layout()
     plt.show()
