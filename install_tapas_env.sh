@@ -54,13 +54,15 @@ mamba_run pip install sdv
 
 
 
-#cd "$REPO_ROOT/privacy/libs/private-pgd"
-#mamba_run pip install .
+cd "$REPO_ROOT/privacy/libs/private-pgd"
+mamba_run pip install .
 
-#mamba_run pip install --upgrade torch torchvision
-#mamba_run pip install fastcore==1.5.29
-#mamba_run pip install fastai==2.7.12
-#mamba_run pip install tsai==0.3.6
+
+mamba_run pip install fastcore==1.5.29
+mamba_run pip install fastai==2.7.12
+mamba_run pip install tsai==0.3.6
+mamba_run pip install --upgrade torch torchvision
+
 
 #mamba_run pip install gower
 #mamba_run pip install scikit-learn==1.5.2 pandas==1.5.3 torch==2.1.2 networkx==2.8.8 seaborn==0.12.2 setuptools==65.6.3
