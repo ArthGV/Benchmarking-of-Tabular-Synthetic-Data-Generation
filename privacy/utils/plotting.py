@@ -56,7 +56,7 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
     
     axes.set_ylim(0, 1)
     axes.set_xlabel("Complexity", fontsize=14, fontweight='bold', color='gray')
-    axes.set_ylabel("Probability", fontsize=14, fontweight='bold', color='gray')
+    axes.set_ylabel("Accuracy", fontsize=14, fontweight='bold', color='gray')
     axes.legend(title='Legend', loc='upper left', fontsize=12)
     # Add gridlines with less intensity for subtle effect
     axes.grid(True, linestyle='--', alpha=0.5)
@@ -179,7 +179,7 @@ def plot_radar_comparison(
     title="Generators Comparison",
     figsize=(8, 6),
     legend_loc="upper right",
-    legend_bbox=(1.4, 1.1),
+    legend_bbox=(1.7, 1.1),
     fill_alpha=0.25,
     store_results=True,
     result_plot_folder=None
@@ -205,8 +205,7 @@ def plot_radar_comparison(
     fill_alpha : float
         Alpha for the filled area under each line.
     """
-    print(df)
-    print(metrics)
+    df = df.fillna(0)
 
     N = len(metrics)
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
@@ -220,21 +219,25 @@ def plot_radar_comparison(
     for _, row in df.iterrows():
         values = [row[m] for m in metrics]
         values += values[:1]
+        model_label = row['Model']
 
-        ax.plot(angles, values, label=row['Model'])
-        ax.fill(angles, values, alpha=fill_alpha)
+        # Plot the radar line
+        line, = ax.plot(angles, values, label=model_label)
+        ax.fill(angles, values, alpha=fill_alpha, color=line.get_color())
 
-        # Add star if Breaking_Time == 1.05
-        if np.isclose(row['Breaking_Time'], 1.05):
-            star_angle = angles[star_angle_idx]
-            star_value = row['Breaking_Time']
-            ax.plot(star_angle, star_value, marker='*', color='red', markersize=8)
+        # Plot small dots at each metric point
+        ax.scatter(angles[:-1], values[:-1], color=line.get_color(), s=30, zorder=3)
+
+        # Add a star if Breaking_Time == 1.05
+        if 'Breaking_Time' in metrics and np.isclose(row['Breaking_Time'], 1.05):
+            idx = metrics.index('Breaking_Time')
+            ax.plot(angles[idx], values[idx], marker='*', markersize=12, color='red', label="_nolegend_")
             show_star_legend = True
 
     # set labels
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(metrics)
-    ax.set_title(title)
+    ax.set_title(title,fontsize=16,pad=50)
 
     # push legend out
     ax.legend(loc=legend_loc, bbox_to_anchor=legend_bbox)
@@ -250,5 +253,5 @@ def plot_radar_comparison(
     plt.tight_layout()
     plt.show()
     if store_results:
-    # Save the figure
         fig.savefig(result_plot_folder + "spider_plot.png", dpi=300, bbox_inches='tight')
+

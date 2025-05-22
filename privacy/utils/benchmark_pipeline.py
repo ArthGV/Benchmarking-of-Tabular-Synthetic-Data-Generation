@@ -579,7 +579,7 @@ class BenchmarkPipeline():
         mask = results_complexity_break['Breaking_Time'] != -1
         bt_min = results_complexity_break.loc[mask, 'Breaking_Time'].min()
         bt_max = results_complexity_break.loc[mask, 'Breaking_Time'].max()
-        results_complexity_break.loc[mask, 'Breaking_Time'] =  (results_complexity_break['Breaking_Time'] - bt_min) / (bt_max - bt_min)
+        results_complexity_break.loc[mask, 'Breaking_Time'] =  (results_complexity_break.loc[mask, 'Breaking_Time'] - bt_min) / (bt_max - bt_min)
         results_complexity_break.loc[~mask, 'Breaking_Time'] = 1.05
 
         # normalize the results in dcr
