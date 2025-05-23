@@ -112,6 +112,7 @@ class PipelineBase:
         self.preprocess()
         self.generate()
         self.postprocess()
+        #self.save()
         # self.save()
 
 

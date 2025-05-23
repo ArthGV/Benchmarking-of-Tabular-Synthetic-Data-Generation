@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.lines import Line2D
 
 def plot(complexity: np.array, mean: np.array, var: np.array = None):
     plt.scatter(complexity, mean, c='red')
@@ -11,7 +12,7 @@ def plot(complexity: np.array, mean: np.array, var: np.array = None):
         plt.scatter(complexity, mean, c='red')
         plt.fill_between(complexity, lower_bound, upper_bound, alpha=.3, color='red')
 
-def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1: np.array, std_1: np.array, baseline_score):
+def double_plot(generator: str, complexity: np.array, mean_0: np.array, std_0: np.array, mean_1: np.array, std_1: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines
     sns.set_palette("muted")  # Muted colors for a more refined look
 
@@ -32,18 +33,18 @@ def double_plot(complexity: np.array, mean_0: np.array, std_0: np.array, mean_1:
     # Common settings for both subplots
     for ax in axes:
         ax.set_ylim(0, 1)
-        ax.set_xlabel("Complexity", fontsize=14, fontweight='bold', color='gray')
-        ax.set_ylabel("Probability", fontsize=14, fontweight='bold', color='gray')
-        ax.legend(title='Legend', loc='upper left', fontsize=12)
+        ax.set_xlabel("Complexity", fontsize=14, fontweight='normal', color='black')
+        ax.set_ylabel("Probability", fontsize=14, fontweight='normal', color='black')
+        ax.legend(loc='upper left', fontsize=12)
 
         # Add gridlines with less intensity for subtle effect
         ax.grid(True, linestyle='--', alpha=0.5)
-
+    fig.suptitle(generator, color='black', fontsize=16)
     plt.tight_layout()
     # plt.show()
     return fig, axes
 
-def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_score):
+def single_plot(generator: str, complexity: np.array, mean: np.array, std: np.array, baseline_score):
     sns.set_style("whitegrid")  # Clean background with gridlines
     sns.set_palette("muted")  # Muted colors for a more refined look
 
@@ -51,12 +52,12 @@ def single_plot(complexity: np.array, mean: np.array, std: np.array, baseline_sc
 
     axes.scatter(complexity, mean, color=sns.color_palette("Reds")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes.fill_between(complexity, mean - std, mean + std, alpha=0.3, color=sns.color_palette("Reds")[2], label='Std Dev', zorder=2)
-    axes.set_title("Generator Results", fontsize=16, fontweight='bold', color='darkred')
+    axes.set_title("Generator Results: " + generator, fontsize=16, fontweight='bold', color='black')
     
     axes.set_ylim(0, 1)
-    axes.set_xlabel("Complexity", fontsize=14, fontweight='bold', color='gray')
-    axes.set_ylabel("Probability", fontsize=14, fontweight='bold', color='gray')
-    axes.legend(title='Legend', loc='upper left', fontsize=12)
+    axes.set_xlabel("Complexity", fontsize=14, fontweight='normal', color='black')
+    axes.set_ylabel("Accuracy", fontsize=14, fontweight='normal', color='black')
+    axes.legend(loc='upper left', fontsize=12)
     # Add gridlines with less intensity for subtle effect
     axes.grid(True, linestyle='--', alpha=0.5)
 
@@ -80,37 +81,37 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     # ax = plt.gca()
     ax.set_facecolor('white')  # Axes background
 
+
+
     # Add colored bands behind each tier row
     row_colors = ["#4292B9", "#70C4BC", "#8FD79F", "#B2E782", "#FFF54E", "#FED303", "#A9A9A9"]  # Light alternating shades
     for i, tier in enumerate(tiers_order):
-        ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)], zorder=0)
+        ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)],alpha = 0.8, zorder=0)
 
-    # Plot white points
+    # Plot black points
     sns.stripplot(
         x="Speed",
         y="Tier",
         data=df,
-        size=30,
-        color="white",       # Points are white
+        size=7,
+        color="black",
         jitter=False,
         dodge=False,
-        edgecolor="black",   # Optional: black border for visibility
         linewidth=0.5,
         zorder=1
     )
 
     # Annotations
-    for i in range(len(df)):
-        plt.text(
-            df["Speed"].iloc[i],
-            df["Tier"].iloc[i],
-            df["Model"].iloc[i],
-            ha='center',
-            va='center',
-            size='small',
-            color='black',
-            weight='semibold',
-            zorder=2
+    for i, row in df.iterrows():
+        ax.text(
+            row["Speed"],  # same x as dot
+            tiers_order.index(row["Tier"]) + 0.2,  # shift down by 0.15 (use codes for exact numeric y)
+            row["Model"],
+            horizontalalignment='center',
+            verticalalignment='top',  # so text is below the dot
+            fontsize=12,
+            color="black",
+            weight='normal'
         )
 
     # Tier separator lines
@@ -123,6 +124,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
     plt.yticks(color='black')
+    plt.xlim(-1500, df["Speed"].max() * 1.3)
 
     plt.legend([], [], frameon=False)
     plt.tight_layout()
@@ -148,7 +150,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
         y.append(models_metrics[gen]["Breaking_Time"])
     # Determine plot limits
     max_scale = max(max(x), max(y)) * 1.1
-    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='upper', cmap='viridis', alpha=0.7)
+    ax.imshow(background_intensity, extent=[0, max_scale, 0, max_scale], origin='upper', cmap='viridis', alpha=0.5)
 
     # Scatter plot
     for gen in range(len(models_metrics)):
@@ -163,7 +165,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
     # Labels and grid
     plt.xlabel("Generation time [μs / datapoint]", color='black')
     plt.ylabel("Breaking time [μs / datapoint]", color='black')
-    ax.set_title('Generator breaking vs generation times')
+    ax.set_title('Generator breaking vs generation times',fontsize =16)
     ax.set_ylim(0, max_scale)
     ax.legend()
     plt.grid(True)
@@ -178,8 +180,8 @@ def plot_radar_comparison(
     title="Generators Comparison",
     figsize=(8, 6),
     legend_loc="upper right",
-    legend_bbox=(1.4, 1.1),
-    fill_alpha=0.25,
+    legend_bbox=(1.7, 1.1),
+    fill_alpha=0.2,
     store_results=True,
     result_plot_folder=None
 ):
@@ -204,31 +206,64 @@ def plot_radar_comparison(
     fill_alpha : float
         Alpha for the filled area under each line.
     """
+    df = df.fillna(0)
 
     N = len(metrics)
-    # compute angles and close the loop
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
     angles += angles[:1]
 
     fig, ax = plt.subplots(figsize=figsize, subplot_kw={'polar': True})
 
+    show_star_legend = False  #
+    star_angle_idx = metrics.index("Breaking_Time")
+
+    #make line at 1.0 thicker
+    gridlines = ax.yaxis.get_gridlines()
+    if len(gridlines) > 1:
+        gridlines[-1].set_color('black')  # change color (e.g., gray)
+        gridlines[-1].set_alpha(0.9)
+
+    for i, line in enumerate(gridlines):
+        if i != len(gridlines) - 1:
+            line.set_linewidth(0.8)
+
     for _, row in df.iterrows():
         values = [row[m] for m in metrics]
         values += values[:1]
-        ax.plot(angles, values, label=row['Model'])
-        ax.fill(angles, values, alpha=fill_alpha)
+        model_label = row['Model']
+
+        # Plot the radar line
+        line, = ax.plot(angles, values, label=model_label)
+        ax.fill(angles, values, alpha=fill_alpha, color=line.get_color())
+
+        # Plot small dots at each metric point
+        ax.scatter(angles[:-1], values[:-1], color=line.get_color(), s=30, zorder=3)
+
+        # Add a star if Breaking_Time == 1.05
+        if 'Breaking_Time' in metrics and np.isclose(row['Breaking_Time'], 1.05):
+            idx = metrics.index('Breaking_Time')
+            ax.plot(angles[idx], values[idx], marker='*', markersize=10, color='red', label="_nolegend_", zorder = 3.5)
+            show_star_legend = True
 
     # set labels
+    ax.tick_params(axis='x', pad=10)  # increase padding from the axis
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(metrics)
-    ax.set_title(title)
+    ax.set_title(title,fontsize=16,pad=50)
 
     # push legend out
     ax.legend(loc=legend_loc, bbox_to_anchor=legend_bbox)
 
+    # add separate star legend
+    if show_star_legend:
+        star_patch = Line2D([0], [0], marker='*', color='w', label='Model not broken',
+                            markerfacecolor='red', markersize=12)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles=[*handles, star_patch], labels=[*labels, 'Attack not succesfull in given complexity range'],
+                  loc=legend_loc, bbox_to_anchor=legend_bbox)
+
     plt.tight_layout()
     plt.show()
     if store_results:
-    # Save the figure
         fig.savefig(result_plot_folder + "spider_plot.png", dpi=300, bbox_inches='tight')
 
