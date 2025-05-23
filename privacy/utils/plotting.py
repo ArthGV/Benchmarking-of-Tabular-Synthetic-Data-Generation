@@ -40,7 +40,7 @@ def double_plot(generator: str, complexity: np.array, mean_0: np.array, std_0: n
 
         # Add gridlines with less intensity for subtle effect
         ax.grid(True, linestyle='--', alpha=0.5)
-    fig.suptitle("Generator results:" + generator, color='black', fontsize=16)
+    fig.suptitle("Generator results: " + generator, color='black', fontsize=16)
     plt.tight_layout()
     # plt.show()
     return fig, axes
@@ -68,6 +68,8 @@ def single_plot(generator: str, complexity: np.array, mean: np.array, std: np.ar
 
 
 def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, result_plot_folder=None, exclude_raw=False):
+
+
     if tiers_order is None:
         tiers_order = ["A", "B", "C", "D", "E", "F", "U"]
 
@@ -76,6 +78,12 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
         df = df[df["Model"] != "Raw"]
 
     df["Tier"] = pd.Categorical(df["Benchmark_rank"], categories=tiers_order, ordered=True)
+
+    # Assign each model a color
+    unique_models = df["Model"].unique()
+    palette = sns.color_palette("hls", len(unique_models))  # Use 'hls' for distinct colors
+    model_colors = dict(zip(unique_models, palette))
+
     fig, ax = plt.subplots(figsize=(12, 7))
     ax.set_facecolor('white')
 
@@ -84,63 +92,49 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     for i, tier in enumerate(tiers_order):
         ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)], alpha=0.7, zorder=0)
 
-    # Plot black points
-    sns.stripplot(
-        x="Speed",
-        y="Tier",
-        data=df,
-        size=7,
-        color="black",
-        jitter=False,
-        dodge=False,
-        linewidth=0.5,
-        zorder=1,
-        ax=ax
-    )
-
-    # Text annotations using adjustText
-    texts = []
-    for i, row in df.iterrows():
-        texts.append(ax.text(
-            row["Speed"],
-            tiers_order.index(row["Tier"]),  # initial y-offset
-            row["Model"],
-            ha='center',
-            va='bottom',
-            fontsize=12,
-            color="black",
-            zorder=3.5
-        ))
-
-    adjust_text(
-        texts,
-        ax=ax,
-        expand=(2, 2),
-        arrowprops=dict(arrowstyle='->', color='grey', lw=0.8),
-        only_move={'points': 'y', 'texts': 'xy'},  # allow both points and text to move in x and y
-        force_text=0.5,  # increase repulsion to push labels away more
-        lim=200  # limit of iterations
-    )
+    # Plot colored dots
+    for model in unique_models:
+        model_df = df[df["Model"] == model]
+        ax.scatter(
+            model_df["Speed"],
+            model_df["Tier"].cat.codes,  # y-position based on tier
+            color=model_colors[model],
+            label=model,
+            s=80,
+            edgecolor='black',
+            zorder=3
+        )
 
     # Tier separator lines
     for tier_index in range(1, len(tiers_order)):
-        ax.axhline(y=tier_index - 0.5, color='gray', linestyle='--', linewidth=1, zorder=3)
+        ax.axhline(y=tier_index - 0.5, color='gray', linestyle='--', linewidth=1, zorder=2)
 
     # Styling
-    plt.title("Model Rank List", color='black', fontsize=16, pad = 10)
+    plt.title("Model Rank List", color='black', fontsize=16, pad=10)
     plt.xlabel("Generation time [μs / datapoint]", color='black')
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
-    plt.yticks(color='black')
-    plt.xlim(df["Speed"].min() * 0.8 if df["Speed"].min() > 0 else df["Speed"].min()-1000, df["Speed"].max() * 1.2)
+    plt.yticks(ticks=np.arange(len(tiers_order)), labels=tiers_order, color='black')
 
-    plt.legend([], [], frameon=False)
+    # Dynamic x limits
+    min_speed = df["Speed"].min()
+    max_speed = df["Speed"].max()
+    ax.set_xlim(min_speed * 0.8 if min_speed > 0 else min_speed - 1000, max_speed * 1.2)
+
+    # Legend
+    ax.legend(title="Model", bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0., fontsize=10)
+    ax.set_ylim(-0.5, len(tiers_order) - 0.5)
+
     plt.tight_layout()
     plt.show()
 
+    # Save
     if store_results and result_plot_folder:
-        fig.savefig(result_plot_folder +  "_exclude_raw=" + str(exclude_raw) +"_generator_ranks.png" , dpi=300, bbox_inches='tight')
-
+        fig.savefig(
+            result_plot_folder + "_exclude_raw=" + str(exclude_raw) + "_generator_ranks.png",
+            dpi=300,
+            bbox_inches='tight'
+        )
 
 def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=None):
 
