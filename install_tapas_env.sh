@@ -57,6 +57,8 @@ mamba_run pip install sdv
 
 #in the terminal then run: mamba install fastcore=1.5.29
 #                           pip install gower
+#                           pip install tf-keras
+#                           pip install pgmpy==0.1.19
 #(in that order)
 
 
