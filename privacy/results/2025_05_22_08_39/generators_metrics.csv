@@ -1,0 +1,5 @@
+Model,Speed,Benchmark_rank,Benchmark_score,Breaking_Time
+Raw,3.9187252521514893,F,0.9750000000000001,7.8374505043029785
+PrivBayes_epsilon=1.0,1942.2359466552734,D,0.5,-1.0
+PrivBayes_degree=2_epsilon=1.0_histogram_bins=10,14834.986531734467,D,0.55,-1.0
+PrivBayes_degree=3_epsilon=1.0_histogram_bins=18,58288.850915431976,C,0.49166666666666675,-1.0

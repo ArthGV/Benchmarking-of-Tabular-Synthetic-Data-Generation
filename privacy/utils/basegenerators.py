@@ -83,7 +83,8 @@ class Raw(BenchmarkGenerator):
         self.trained = True
 
     def generate(self, num_samples=None, random_state=None):
-        if self.trained:
+        if self.trained: 
+            
             if num_samples is None:
                 return self.dataset
             return self.dataset.sample(num_samples, random_state=random_state)
