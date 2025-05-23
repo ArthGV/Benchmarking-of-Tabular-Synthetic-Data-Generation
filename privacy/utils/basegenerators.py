@@ -144,7 +144,6 @@ class ReprosynGenerator(BenchmarkGenerator):
             size=num_samples,
             **self.generator_kwargs,
         )
-        print(f"Generating {num_samples} samples with {self.label}")
         model.run()
         output = model.output.copy()
         output[self.categorical_columns] = output[self.categorical_columns].astype('category').astype(str)
