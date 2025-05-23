@@ -62,7 +62,8 @@ class Raw(BenchmarkGenerator):
         self.trained = True
 
     def generate(self, num_samples=None, random_state=None):
-        if self.trained:
+        if self.trained: 
+            
             if num_samples is None:
                 return self.dataset
             return self.dataset.sample(num_samples, random_state=random_state)
@@ -122,6 +123,7 @@ class ReprosynGenerator(BenchmarkGenerator):
             size=num_samples,
             **self.generator_kwargs,
         )
+        print(f"Generating {num_samples} samples with {self.label}")
         model.run()
         output = model.output.copy()
         output[self.categorical_columns] = output[self.categorical_columns].astype('category').astype(str)

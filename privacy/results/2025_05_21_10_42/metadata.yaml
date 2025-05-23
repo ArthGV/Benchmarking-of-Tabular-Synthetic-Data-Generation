@@ -1,0 +1,18 @@
+baseline_score: 0.671
+benchmarking_metric: AUC_Metric
+complexity_range:
+- 2
+- 50
+- 100
+- 200
+- 500
+- 750
+- 1000
+dataset: data/adult
+generators:
+- Raw
+- PrivBayes_epsilon=1.0
+number_of_tests: 5
+p: 0.5
+run_per_range: 10
+size_of_datasets: 1000

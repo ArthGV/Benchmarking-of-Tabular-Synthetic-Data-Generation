@@ -112,7 +112,7 @@ class PipelineBase:
         self.preprocess()
         self.generate()
         self.postprocess()
-        self.save()
+        # self.save()
 
 
 def encode_ordinal(dataset: Dataset):
