@@ -79,6 +79,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
 
     df["Tier"] = pd.Categorical(df["Benchmark_rank"], categories=tiers_order, ordered=True)
 
+
     # Assign each model a color
     unique_models = df["Model"].unique()
     palette = sns.color_palette("hls", len(unique_models))  # Use 'hls' for distinct colors
@@ -124,6 +125,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     # Legend
     ax.legend(title="Model", bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0., fontsize=10)
     ax.set_ylim(-0.5, len(tiers_order) - 0.5)
+    ax.invert_yaxis()
 
     plt.tight_layout()
     plt.show()
