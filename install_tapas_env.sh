@@ -59,6 +59,8 @@ mamba_run pip install sdv
 #                           pip install gower
 #                           pip install tf-keras
 #                           pip install pgmpy==0.1.19
+#                           pip install adjustText
+
 #(in that order)
 
 

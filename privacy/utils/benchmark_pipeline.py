@@ -201,7 +201,8 @@ class BenchmarkPipeline():
 
 
 
-            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
+            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER, exclude_raw = False)
+            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER, exclude_raw = True)
             breaking_time_plot(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
             
             self._ml_utility(target_col=classification_target_col, num_samples=classification_num_samples, 

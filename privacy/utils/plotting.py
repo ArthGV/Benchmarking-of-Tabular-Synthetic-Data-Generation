@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.lines import Line2D
+from adjustText import adjust_text
 
 def plot(complexity: np.array, mean: np.array, var: np.array = None):
     plt.scatter(complexity, mean, c='red')
@@ -19,16 +20,16 @@ def double_plot(generator: str, complexity: np.array, mean_0: np.array, std_0: n
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))  # Larger plot size for clarity
 
     # First plot - Target not in DB
-    axes[0].plot(complexity, baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[3])
+    axes[0].plot(complexity, baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[3], label='Likelihood-based Attack')
     axes[0].scatter(complexity, mean_0, color=sns.color_palette("Reds")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes[0].fill_between(complexity, mean_0 - std_0, mean_0 + std_0, alpha=0.3, color=sns.color_palette("Reds")[2], label='Std Dev', zorder=2)
-    axes[0].set_title("Target not in DB", fontsize=16, fontweight='bold', color='darkred')
+    axes[0].set_title("Target not in DB", fontsize=14, color='darkred')
     
     # Second plot - Target in DB
-    axes[1].plot(complexity, baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[3])
+    axes[1].plot(complexity, baseline_score*np.ones(complexity.shape[0]), color=sns.color_palette("flare")[3], label='Likelihood-based Attack')
     axes[1].scatter(complexity, mean_1, color=sns.color_palette("Blues")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes[1].fill_between(complexity, mean_1 - std_1, mean_1 + std_1, alpha=0.3, color=sns.color_palette("Blues")[2], label='Std Dev', zorder=2)
-    axes[1].set_title("Target in DB", fontsize=16, fontweight='bold', color='darkblue')
+    axes[1].set_title("Target in DB", fontsize=14, color='darkblue')
 
     # Common settings for both subplots
     for ax in axes:
@@ -39,7 +40,7 @@ def double_plot(generator: str, complexity: np.array, mean_0: np.array, std_0: n
 
         # Add gridlines with less intensity for subtle effect
         ax.grid(True, linestyle='--', alpha=0.5)
-    fig.suptitle(generator, color='black', fontsize=16)
+    fig.suptitle("Generator results:" + generator, color='black', fontsize=16)
     plt.tight_layout()
     # plt.show()
     return fig, axes
@@ -52,7 +53,7 @@ def single_plot(generator: str, complexity: np.array, mean: np.array, std: np.ar
 
     axes.scatter(complexity, mean, color=sns.color_palette("Reds")[3], label='Mean', s=50, edgecolor='black', zorder=5)
     axes.fill_between(complexity, mean - std, mean + std, alpha=0.3, color=sns.color_palette("Reds")[2], label='Std Dev', zorder=2)
-    axes.set_title("Generator Results: " + generator, fontsize=16, fontweight='bold', color='black')
+    axes.set_title("Generator Results: " + generator, fontsize=16, color='black', pad=10)
     
     axes.set_ylim(0, 1)
     axes.set_xlabel("Complexity", fontsize=14, fontweight='normal', color='black')
@@ -66,27 +67,22 @@ def single_plot(generator: str, complexity: np.array, mean: np.array, std: np.ar
     return fig, axes
 
 
-def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, result_plot_folder=None):
+def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, result_plot_folder=None, exclude_raw=False):
     if tiers_order is None:
         tiers_order = ["A", "B", "C", "D", "E", "F", "U"]
 
     df = pd.DataFrame(models_metrics)
+    if exclude_raw:
+        df = df[df["Model"] != "Raw"]
 
-    # Set tier column as ordered categorical
     df["Tier"] = pd.Categorical(df["Benchmark_rank"], categories=tiers_order, ordered=True)
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.set_facecolor('white')
 
-    # Setup figure
-    fig, ax = plt.subplots(figsize=(10, 6))
-    # plt.figure(figsize=(10, 6))
-    # ax = plt.gca()
-    ax.set_facecolor('white')  # Axes background
-
-
-
-    # Add colored bands behind each tier row
-    row_colors = ["#4292B9", "#70C4BC", "#8FD79F", "#B2E782", "#FFF54E", "#FED303", "#A9A9A9"]  # Light alternating shades
+    # Colored tier backgrounds
+    row_colors = ["#4292B9", "#70C4BC", "#8FD79F", "#B2E782", "#FFF54E", "#FED303", "#A9A9A9"]
     for i, tier in enumerate(tiers_order):
-        ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)],alpha = 0.8, zorder=0)
+        ax.axhspan(i - 0.5, i + 0.5, color=row_colors[i % len(row_colors)], alpha=0.7, zorder=0)
 
     # Plot black points
     sns.stripplot(
@@ -98,40 +94,53 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
         jitter=False,
         dodge=False,
         linewidth=0.5,
-        zorder=1
+        zorder=1,
+        ax=ax
     )
 
-    # Annotations
+    # Text annotations using adjustText
+    texts = []
     for i, row in df.iterrows():
-        ax.text(
-            row["Speed"],  # same x as dot
-            tiers_order.index(row["Tier"]) + 0.2,  # shift down by 0.15 (use codes for exact numeric y)
+        texts.append(ax.text(
+            row["Speed"],
+            tiers_order.index(row["Tier"]),  # initial y-offset
             row["Model"],
-            horizontalalignment='center',
-            verticalalignment='top',  # so text is below the dot
+            ha='center',
+            va='bottom',
             fontsize=12,
             color="black",
-            weight='normal'
-        )
+            zorder=3.5
+        ))
+
+    adjust_text(
+        texts,
+        ax=ax,
+        expand=(2, 2),
+        arrowprops=dict(arrowstyle='->', color='grey', lw=0.8),
+        only_move={'points': 'y', 'texts': 'xy'},  # allow both points and text to move in x and y
+        force_text=0.5,  # increase repulsion to push labels away more
+        lim=200  # limit of iterations
+    )
 
     # Tier separator lines
     for tier_index in range(1, len(tiers_order)):
-        plt.axhline(y=tier_index - 0.5, color='gray', linestyle='--', linewidth=1, zorder=3)
+        ax.axhline(y=tier_index - 0.5, color='gray', linestyle='--', linewidth=1, zorder=3)
 
-    # Axis styling
-    plt.title("Model Rank List", color='black', fontsize=16)
+    # Styling
+    plt.title("Model Rank List", color='black', fontsize=16, pad = 10)
     plt.xlabel("Generation time [μs / datapoint]", color='black')
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
     plt.yticks(color='black')
-    plt.xlim(-1500, df["Speed"].max() * 1.3)
+    plt.xlim(df["Speed"].min() * 0.8 if df["Speed"].min() != 0 else df["Speed"].min()-1000, df["Speed"].max() * 1.2)
 
     plt.legend([], [], frameon=False)
     plt.tight_layout()
     plt.show()
-    if store_results:
-        # Save the figure
-        fig.savefig(result_plot_folder + "generator_ranks.png", dpi=300, bbox_inches='tight')
+
+    if store_results and result_plot_folder:
+        fig.savefig(result_plot_folder +  "_exclude_raw=" + str(exclude_raw) +"_generator_ranks.png" , dpi=300, bbox_inches='tight')
+
 
 def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=None):
 
@@ -165,7 +174,7 @@ def breaking_time_plot(models_metrics, store_results=True, result_plot_folder=No
     # Labels and grid
     plt.xlabel("Generation time [μs / datapoint]", color='black')
     plt.ylabel("Breaking time [μs / datapoint]", color='black')
-    ax.set_title('Generator breaking vs generation times',fontsize =16)
+    ax.set_title('Generator breaking vs generation times',fontsize =14, pad = 10)
     ax.set_ylim(0, max_scale)
     ax.legend()
     plt.grid(True)
@@ -207,6 +216,9 @@ def plot_radar_comparison(
         Alpha for the filled area under each line.
     """
     df = df.fillna(0)
+    colors = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999"]
+    model_color_map = dict(zip(df["Model"].unique(), colors))
+
 
     N = len(metrics)
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
@@ -233,7 +245,8 @@ def plot_radar_comparison(
         model_label = row['Model']
 
         # Plot the radar line
-        line, = ax.plot(angles, values, label=model_label)
+        line_color = model_color_map.get(model_label, 'gray')  # fallback color
+        line, = ax.plot(angles, values, label=model_label, color=line_color)
         ax.fill(angles, values, alpha=fill_alpha, color=line.get_color())
 
         # Plot small dots at each metric point
