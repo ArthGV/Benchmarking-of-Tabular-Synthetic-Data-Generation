@@ -132,7 +132,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     plt.ylabel("Rank", color='black')
     plt.xticks(color='black')
     plt.yticks(color='black')
-    plt.xlim(df["Speed"].min() * 0.8 if df["Speed"].min() != 0 else df["Speed"].min()-1000, df["Speed"].max() * 1.2)
+    plt.xlim(df["Speed"].min() * 0.8 if df["Speed"].min() > 0 else df["Speed"].min()-1000, df["Speed"].max() * 1.2)
 
     plt.legend([], [], frameon=False)
     plt.tight_layout()
