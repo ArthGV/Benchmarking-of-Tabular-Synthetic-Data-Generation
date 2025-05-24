@@ -1,0 +1,6 @@
+Model,dcr_mean,dcr_std
+Raw,0.0,0.0
+PrivBayes_degree=1_epsilon=1.0_histogram_bins=10,0.14484958,0.18221912
+BayNet_degree=1_histogram_bins=10,0.031237585,0.069223985
+bayesian_network_random_state=42,0.024359593,0.078823425
+GaussianCopulaSynthesizer,0.023569757,0.070451416
