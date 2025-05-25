@@ -133,7 +133,7 @@ def plot_generators_ranks(models_metrics, tiers_order=None, store_results=True, 
     # Save
     if store_results and result_plot_folder:
         fig.savefig(
-            result_plot_folder + "_exclude_raw=" + str(exclude_raw) + "_generator_ranks.png",
+            result_plot_folder + "generator_ranks" + "_exclude_raw=" + str(exclude_raw) + ".png",
             dpi=300,
             bbox_inches='tight'
         )
