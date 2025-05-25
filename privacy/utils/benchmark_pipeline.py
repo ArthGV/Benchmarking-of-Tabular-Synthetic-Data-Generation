@@ -1,18 +1,25 @@
 import os
-import tapas
+import gc
 import yaml
+import numpy as np
+import pandas as pd
+from typing import Literal
 from datetime import datetime
 import time
-import numpy as np
-from typing import Literal
+import pickle
 import random
+
+import tapas
+from tapas.datasets.data_description import DataDescription
 from utils.plotting import single_plot, double_plot, plot_generators_ranks, breaking_time_plot, plot_radar_comparison
 from utils.benchmark_metric import BenchmarkMetric
 from utils.baseline_attack import get_baseline_score
-import pickle
+from utils.tracker import TqdmTracker
+
 from utils.basegenerators import BenchmarkGenerator
 import matplotlib.pyplot as plt
-import pandas as pd
+
+import torch
 from xgboost import XGBClassifier
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, LabelEncoder
@@ -21,8 +28,8 @@ from sklearn.neighbors import NearestNeighbors
 import gower
 from scipy.stats import randint, uniform
 from sklearn.metrics import f1_score
-from tapas.datasets.data_description import DataDescription
 from sklearn.preprocessing import minmax_scale
+
 
 class BenchmarkPipeline():
 
@@ -32,11 +39,12 @@ class BenchmarkPipeline():
     RESULTS_PLOT_FOLDER: str =  RUN_FOLDER + 'plots/'
 
 
-    def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, size_of_datasets: int | None = None):
+    def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, data_size=None, size_of_datasets: int | None = None):
         
         self.data = data
         self.attack = attack
         self.generators = generators
+        self.data_size = data_size
 
         if target_record:
             #if target record is provided, it must not be in data
@@ -45,6 +53,15 @@ class BenchmarkPipeline():
             ind = [int(random.random() * len(data.data))]
             self.target_record = self.data.get_records(ind)
             self.data.drop_records(ind, in_place=True)
+
+        if self.data_size:
+            if self.data_size > len(data.data):
+                self.data_size = len(data.data)
+                print("Dataset contains less samples than specified data_size, reduced data_size")
+            else:
+                #Take only subset of data
+                self.data = data.sample(n_samples=self.data_size)
+        else: self.data_size = len(data.data)
 
         self.attacker_data, self.defender_data = self.data.create_subsets(n = 2, sample_size= int(len(self.data) / 2))
 
@@ -69,7 +86,8 @@ class BenchmarkPipeline():
                     target_record=self.target_record,
                     attacker_knowledge_generator=g_k,
                     generate_pairs=True,
-                    replace_target=True
+                    replace_target=True,
+                    iterator_tracker=TqdmTracker
             )
             for g_k in self.generator_knowledge
         ]
@@ -82,7 +100,7 @@ class BenchmarkPipeline():
             plot_style: Literal['single', 'double', 'all'] | None = 'all',
             benchmarking_metric: BenchmarkMetric | None = None, 
             classification_target_col: str = 'target',
-            classification_num_samples: int = None,
+            classification_num_samples: int = 1000,
             classification_test_size: float = 0.2,
             classification_classifier = None,
             classification_cv: int = 5,
@@ -140,6 +158,7 @@ class BenchmarkPipeline():
         
         attack_results = []
         for i in range(len(self.generators)):
+
             M_0, S_0, M_1, S_1, gen_time = self._attack_one_generator(i, complexity_range, run_per_range, number_of_tests, p, generate_data)
             attack_results.append({
                                     'M_0': M_0,
@@ -201,8 +220,7 @@ class BenchmarkPipeline():
 
 
 
-            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER, exclude_raw = False)
-            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER, exclude_raw = True)
+            plot_generators_ranks(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
             breaking_time_plot(generators_metrics, store_results=store_results, result_plot_folder=self.RESULTS_PLOT_FOLDER)
             
             self._ml_utility(target_col=classification_target_col, num_samples=classification_num_samples, 
@@ -220,11 +238,12 @@ class BenchmarkPipeline():
         number_of_generated_shadow_datasets = int(complexity_range[-1] * (1/p))
         path_data = self.STORED_DATA_FOLDER + repr(self.generators[generator_ind]) + ".pkl"
         if generate_data:
+            print("Generating Shadow Data Pool")
             shadow_data_pool, gen_time = self._generate_shadow_datasets(self.threat_models[generator_ind], number_of_generated_shadow_datasets, path_data)
         else:
             print('Import datasets from', path_data)
             shadow_data_pool, gen_time = self._import_shadow_datasets(path_data)
-        
+        print("Generating Test Data")
         test_datasets, truth_labels = self.threat_models[generator_ind]._generate_samples(number_of_tests, False, True)
         M_0 = []
         S_0 = []
@@ -326,7 +345,7 @@ class BenchmarkPipeline():
     def _ml_utility(
         self, 
         target_col='target', 
-        num_samples=None,
+        num_samples=1000,
         test_size=0.2,
         classifier=None, 
         cv=5,
@@ -335,11 +354,13 @@ class BenchmarkPipeline():
         preprocess_data=True,
         store_results=True,
         ):
-        
+
         cat_features = self.data.description.one_hot_cols
         cat_features = [col for col in cat_features if col != target_col]
         description = DataDescription(self.data.description.schema)
         dataset = self.data.data # get the data from the dataset as a pandas dataframe
+        dataset = dataset.sample(n= round(num_samples/(1-test_size))+2)
+
 
         y = dataset[target_col]
         X = dataset.drop(columns=[target_col])
@@ -349,7 +370,6 @@ class BenchmarkPipeline():
             random_state=random_state,
             stratify=y
         )
-        
 
         # combine X_train and y_train into a single dataframe
         train_combined = pd.concat([X_train, y_train], axis=1)
@@ -381,6 +401,12 @@ class BenchmarkPipeline():
             row_gen = {"Model": repr(generator), "test_score_original": result['test_score'], "test_score_generated": result_gen['test_score'], "utility_score": min(1., float(result_gen['test_score'] / result['test_score']))}
             # print('Results for generated data:', result_gen)
             rows.append(row_gen)
+
+            #clear memory
+            del generated_data
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         # save the results to a csv file
         if store_results:
@@ -470,8 +496,7 @@ class BenchmarkPipeline():
         
         # Default classifier: XGBoost
         if classifier is None:
-            classifier = XGBClassifier(use_label_encoder=False,
-                                    eval_metric='logloss',
+            classifier = XGBClassifier(eval_metric='logloss',
                                     random_state=random_state)
         
         # Hyperparameter optimization
@@ -577,9 +602,10 @@ class BenchmarkPipeline():
         results_complexity_break["Speed"] = (results_complexity_break["Speed"] - max_speed) / (min_speed - max_speed)
 
         results_complexity_break["Benchmark_score"] = 1 - results_complexity_break["Benchmark_score"]
+
         mask = results_complexity_break['Breaking_Time'] != -1
-        bt_min = results_complexity_break.loc[mask, 'Breaking_Time'].min()
-        bt_max = results_complexity_break.loc[mask, 'Breaking_Time'].max()
+        bt_min = 1.05*results_complexity_break.loc[mask, 'Breaking_Time'].min()
+        bt_max = 0.95*results_complexity_break.loc[mask, 'Breaking_Time'].max()
         results_complexity_break.loc[mask, 'Breaking_Time'] =  (results_complexity_break.loc[mask, 'Breaking_Time'] - bt_min) / (bt_max - bt_min)
         results_complexity_break.loc[~mask, 'Breaking_Time'] = 1.05
 
@@ -594,19 +620,21 @@ class BenchmarkPipeline():
         results = results.rename(columns={"Benchmark_score": metric_name, "dcr_mean": "DCR", "utility_score": "Utility"})
         return results
     
-    def _average_dcr(self, num_samples = None, metric='euclidean',store_results=True, results_path="results_dcr.csv"):
+    def _average_dcr(self, num_samples = 100, metric='euclidean',store_results=True, results_path="results_dcr.csv"):
         """
         Compute average DCR across synthetic samples.
         """
-        num_samples = num_samples if num_samples else len(self.data.data)
         cat_features = self.data.description.one_hot_cols
+        #use only a subset of the data to train the generators
+        train_data = self.data
+        train_data = train_data.sample(n_samples=1000)
             
         rows = []
         for i in range(len(self.generators)):
             print('Evaluating :', repr(self.generators[i]))
             generator = self.generators[i]
-            generated_data = generator(self.data, num_samples)
-            dcr_vals = self._compute_dcr(self.data.data, generated_data.data, metric, cat_features)
+            generated_data = generator(train_data, num_samples)
+            dcr_vals = self._compute_dcr(self.defender_data.data, generated_data.data, metric, cat_features)
             row = {"Model": repr(generator), "dcr_mean": np.mean(dcr_vals), "dcr_std": np.std(dcr_vals)}
             rows.append(row)
         
