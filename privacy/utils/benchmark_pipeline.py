@@ -39,7 +39,7 @@ class BenchmarkPipeline():
     RESULTS_PLOT_FOLDER: str =  RUN_FOLDER + 'plots/'
 
 
-    def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, data_size=None, size_of_datasets: int | None = None):
+    def __init__(self, data, attack, generators: list[BenchmarkGenerator], target_record = None, data_size=15000, size_of_datasets: int | None = None):
         
         self.data = data
         self.attack = attack
@@ -54,14 +54,14 @@ class BenchmarkPipeline():
             self.target_record = self.data.get_records(ind)
             self.data.drop_records(ind, in_place=True)
 
-        if self.data_size:
-            if self.data_size > len(data.data):
-                self.data_size = len(data.data)
-                print("Dataset contains less samples than specified data_size, reduced data_size")
-            else:
-                #Take only subset of data
-                self.data = data.sample(n_samples=self.data_size)
-        else: self.data_size = len(data.data)
+
+        if self.data_size > len(data.data):
+            self.data_size = len(data.data)
+            print("Dataset contains less samples than specified or default data_size, reduced data_size")
+        else:
+            #Take only subset of data
+            self.data = data.sample(n_samples=self.data_size)
+
 
         self.attacker_data, self.defender_data = self.data.create_subsets(n = 2, sample_size= int(len(self.data) / 2))
 
