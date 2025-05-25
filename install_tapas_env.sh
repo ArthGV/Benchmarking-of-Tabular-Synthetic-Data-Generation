@@ -61,6 +61,8 @@ mamba_run pip install sdv
 #                           pip install pgmpy==0.1.19
 #                           pip install adjustText
 
+#pip install "xgboost<1.7"
+
 #(in that order)
 
 
