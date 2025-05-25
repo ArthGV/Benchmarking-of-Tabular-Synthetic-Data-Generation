@@ -171,12 +171,12 @@ class BenchmarkPipeline():
                 fig, axes = single_plot(repr(self.generators[i]), np.array(complexity_range), (1 - np.array(M_0) + np.array(M_1)) / 2, np.array(S_0) + np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results:
-                    fig.savefig(self.RESULTS_PLOT_FOLDER + repr(self.generators[i]) + "_single_" + ".png", dpi=300)
+                    fig.savefig(self.RESULTS_PLOT_FOLDER + repr(self.generators[i]) + "_single" + ".png", dpi=300)
             if plot_style in ['double', 'all']:
                 fig, axes = double_plot(repr(self.generators[i]), np.array(complexity_range), np.array(M_0), np.array(S_0), np.array(M_1), np.array(S_1), self.baseline_score)
                 plt.show()
                 if store_results:
-                    fig.savefig(self.RESULTS_PLOT_FOLDER + repr(self.generators[i]) + "_double_" + ".png", dpi=300)
+                    fig.savefig(self.RESULTS_PLOT_FOLDER + repr(self.generators[i]) + "_double" + ".png", dpi=300)
 
         if benchmarking_metric:
             print('----[Benchmark ranks]----')
