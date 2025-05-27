@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.lines import Line2D
-from adjustText import adjust_text
+
 
 def plot(complexity: np.array, mean: np.array, var: np.array = None):
     plt.scatter(complexity, mean, c='red')
