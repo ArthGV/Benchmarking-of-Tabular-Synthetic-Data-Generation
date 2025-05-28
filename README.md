@@ -2,7 +2,7 @@
 
 ### Contributors:
 - Artheme Gauthier-Villars
-- Zoe Meier
+- Zoé Meier
 - Eduard von Bothmer
 
 ### Challenge Giver:
