@@ -1,3 +1,0 @@
-Model,test_score_original,test_score_generated,utility_score
-Raw,0.7057687665942554,0.703125,1.0
-PrivBayes_epsilon=1.0,0.7057687665942554,0.46823956442831216,1.0
