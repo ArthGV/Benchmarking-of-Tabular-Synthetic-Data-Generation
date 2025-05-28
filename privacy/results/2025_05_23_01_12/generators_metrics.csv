@@ -1,0 +1,6 @@
+Model,Speed,Benchmark_rank,Benchmark_score,Breaking_Time
+Raw,3.517058491706848,F,1.0,7.034116983413696
+PrivBayes_degree=1_epsilon=1.0_histogram_bins=10,1698.3774534463882,D,0.5028223112892451,-1.0
+BayNet_degree=1_histogram_bins=10,1725.425208568573,D,0.5442718770875085,-1.0
+bayesian_network_random_state=42,5025.715236544609,E,0.6743987975951903,791662.3017818921
+GaussianCopulaSynthesizer,1222.523961186409,D,0.5279559118236473,-1.0
