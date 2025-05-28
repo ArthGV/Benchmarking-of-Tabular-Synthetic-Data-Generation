@@ -28,3 +28,24 @@ We define two main attack settings:
 # Repository Structure
 
 # Installation
+#TODO
+micromamba create -n tapas-upgrade python=3.10.15 -c conda-forge
+micromamba activate tapas-upgrade
+pip install . #from tapas-main
+pip install . # from private-pgm-master
+pip install . #from reprosyn-main
+pip install scikit-learn==1.5.2
+pip install ctgan==0.10.2
+pip install click
+pip install . # from synthctiy-main
+pip install --upgrade torch torchvision
+pip install --upgrade pandas==1.5.3
+cd querysnout-main/src/optimized_qbs
+pip install .
+pip install --upgrade setuptools
+pip install hydra-core --upgrade
+pip install hydra_colorlog --upgrade
+pip install optuna optuna-dashboard
+pip install hydra-optuna-sweeper --upgrade
+pip install --upgrade optuna
+pip install sdmetrics
