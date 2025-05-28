@@ -1,4 +1,10 @@
 #!/bin/bash
+
+# This is the script for the environment that works with Reprosyn, Synthcity and SDV. For the environment that works
+# with PrivPGD please see install_lab_env_privpgd.sh
+
+# If the script doesnt work, try manual installation as described in the README
+
 set -e
 micromamba run -n lab_env pip cache purge
 
@@ -52,18 +58,17 @@ mamba_run pip install optuna optuna-dashboard
 mamba_run pip install hydra-optuna-sweeper --upgrade
 mamba_run pip install --upgrade optuna
 mamba_run pip install sdmetrics
+
 mamba_run pip install sdv
+mamba_run pip install
 
+mamba_run mamba install fastcore=1.5.29
+mamba_run pip install gower
+mamba_run pip install tf-keras
+mamba_run pip install pgmpy==0.1.19
+mamba_run pip install "xgboost<1.7"
 
-#in the terminal then run: mamba install fastcore=1.5.29
-#                           pip install gower
-#                           pip install tf-keras
-#                           pip install pgmpy==0.1.19
-#                           pip install adjustText
-
-#pip install "xgboost<1.7"
-
-#(in that order)
-
+#for sinthcity
+mamba run pip install "transformers==4.41.0" "accelerate==1.7.0"
 
 echo "✅ Fresh installation of $ENV_NAME completed!"
