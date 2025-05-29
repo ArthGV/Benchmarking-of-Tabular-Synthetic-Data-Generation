@@ -1,5 +1,0 @@
-Model,dcr_mean,dcr_std
-Raw,0.0,0.0
-PrivBayes_epsilon=1.0,0.03094611,0.08157843
-PrivBayes_degree=2_epsilon=1.0_histogram_bins=10,0.054689914,0.093836464
-PrivBayes_degree=3_epsilon=1.0_histogram_bins=18,0.21436377,0.17802341
