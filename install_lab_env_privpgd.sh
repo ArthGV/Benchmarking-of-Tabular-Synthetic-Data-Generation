@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# This is the script for the environment that works with Reprosyn, Synthcity and SDV. For the environment that works
-# with PrivPGD please see install_lab_env_privpgd.sh
-
-# If the script doesnt work, try manual installation as described in the README
-
+# This is the script for the environment that also works with Privpgd. Sometimes the dependencies cant get resolved,
+# try manual installation of the packages in the same order in that case.
 pip cache purge
 
-ENV_NAME="lab_env"
+ENV_NAME="lab_env_privpgd"
 
 # Delete existing environment if it exists
 if micromamba env list | grep -q "$ENV_NAME"; then
@@ -69,5 +66,12 @@ mamba_run pip install "xgboost<1.7"
 
 #for sinthcity
 mamba run pip install "transformers==4.41.0" "accelerate==1.7.0"
+
+#for privpgd
+cd "$REPO_ROOT/privacy/libs/private-pgd"
+mamba_run pip install .
+
+mamba_run pip install fastcore==1.5.29
+mamba_run pip install --upgrade torch torchvision
 
 echo "✅ Fresh installation of $ENV_NAME completed!"
