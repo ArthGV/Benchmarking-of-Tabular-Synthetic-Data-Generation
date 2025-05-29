@@ -1,3 +1,0 @@
-Model,test_score_original,test_score_generated,utility_score
-Raw,0.7057687665942554,0.6996328029375765,0.9913059858311831
-PrivBayes_degree=2_epsilon=1.0_histogram_bins=10,0.7057687665942554,0.602839756592292,0.8541604348706792
