@@ -6,10 +6,11 @@
 - Eduard von Bothmer
 
 ### Challenge Giver:
-- XXX / Swisscom
+- Dr. David Froelicher / Swisscom
 
 ### Academic Supervisors:
-- XXX / ETH ZÜRICH
+- Prof. Fanny YangMartinez / ETH AI Center, ETH ZÜRICH
+- Dr. Javier Abad Martinez / ETH AI Center, ETH ZÜRICH
 
 # Defender-Attacker Framework for Evaluating Privacy Risks in Synthetic Data Sharing
 
@@ -27,5 +28,42 @@ We define two main attack settings:
 
 # Repository Structure
 
+```
+└── 📁Benchmarking-of-Tabular-Synthetic-Data-Generation
+    └── 📁privacy
+        └── __init__.py
+        └── 📁data "Folder for input data"
+        └── 📁libs "Folder for dependencies installations"
+        └── pyproject.toml
+        └── requirements.txt
+        └── 📁results "Folder for storing results"
+        └── 📁utils "Folder containing the pipeline code"
+            └── __init__.py
+            └── basegenerators.py
+            └── baseline_attack.py
+            └── benchmark_metric.py
+            └── benchmark_pipeline.py
+            └── 📁customgenerators
+                └── __init__.py
+                └── sdvgenerator.py
+                └── synthcitygenerator.py
+            └── my_attack.py
+            └── my_feature.py
+            └── plotting.py
+            └── privpgdgenerator.py
+            └── 📁tapas
+        └── run_pipeline.ipynb "Notebook to run the pipeline"
+    └── __init__.py
+    └── .gitignore
+    └── Benchmarking-of-Tabular-Synthetic-Data-Generation.code-workspace
+    └── install_lab_env_privpgd.sh
+    └── install_lab_env.sh
+    └── LICENSE
+    └── README.md
+    └── requirements.txt
+```
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+
+
 # Installation
-There's two installation scripts, one for the stable base setup covering all the packages for Synthcity, SDV and Reprosyn generators (install_lab_env.sh) and one additionally for privpgd (install_lab_env_privpgd.sh), that sometimes has issues with resolving dependencies depending on the system you're running it from. Unless you're running privpgd generators, please use the install_lab_env.sh script to set up your environment. In case the script doesnt work, please try manual installation of the steps in the exact same order. 
+There's two installation scripts, one for the stable base setup covering all the packages for Synthcity, SDV and Reprosyn generators (install_lab_env.sh) and one additionally for privpgd (install_lab_env_privpgd.sh), that sometimes has issues with resolving dependencies depending on the system you're running it from. Unless you're running privpgd generators, please use the install_lab_env.sh script to set up your environment. In case the script doesnt work, please try manual installation of the steps in the exact same order with either micromanba or conda.
