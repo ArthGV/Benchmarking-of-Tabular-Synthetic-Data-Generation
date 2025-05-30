@@ -1,0 +1,211 @@
+[
+	{
+		"name": "region",
+		"type": "finite",
+		"representation": [
+			"E12000001",
+			"E12000002",
+			"E12000003",
+			"E12000004",
+			"E12000005",
+			"E12000009",
+			"E12000006",
+			"E12000008",
+			"E12000007",
+			"W92000004"
+		]
+	},
+	{
+		"name": "residence_type",
+		"type": "finite",
+		"representation": [
+			"H",
+			"C"
+		]
+	},
+	{
+		"name": "family_composition",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6"
+		]
+	},
+	{
+		"name": "population_base",
+		"type": "finite",
+		"representation": [
+			"1",
+			"2",
+			"3"
+		]
+	},
+	{
+		"name": "sex",
+		"type": "finite",
+		"representation": [
+			"1",
+			"2"
+		]
+	},
+	{
+		"name": "age",
+		"type": "finite",
+		"representation": [
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8"
+		]
+	},
+	{
+		"name": "marital_status",
+		"type": "finite",
+		"representation": [
+			"1",
+			"2",
+			"3",
+			"4",
+			"5"
+		]
+	},
+	{
+		"name": "student",
+		"type": "finite",
+		"representation": [
+			"1",
+			"2"
+		]
+	},
+	{
+		"name": "country_of_birth",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2"
+		]
+	},
+	{
+		"name": "health",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5"
+		]
+	},
+	{
+		"name": "ethnic_group",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5"
+		]
+	},
+	{
+		"name": "religion",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8",
+			"9"
+		]
+	},
+	{
+		"name": "economic_activity",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8",
+			"9"
+		]
+	},
+	{
+		"name": "occupation",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8",
+			"9"
+		]
+	},
+	{
+		"name": "industry",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8",
+			"9",
+			"10",
+			"11",
+			"12"
+		]
+	},
+	{
+		"name": "hours_worked_per_week",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4"
+		]
+	},
+	{
+		"name": "approximated_social_grade",
+		"type": "finite",
+		"representation": [
+			"-9",
+			"1",
+			"2",
+			"3",
+			"4"
+		]
+	}
+]
