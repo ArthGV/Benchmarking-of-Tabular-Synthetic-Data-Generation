@@ -6,6 +6,7 @@
 - Eduard von Bothmer - evonbothmer@ethz.ch
 
 ### Challenge Giver:
+- Dr. Daniel Dobos / Swisscom
 - Dr. David Froelicher / Swisscom
 
 ### Academic Supervisors:
