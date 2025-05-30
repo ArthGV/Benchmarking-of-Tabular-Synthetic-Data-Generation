@@ -7,6 +7,9 @@ class BenchmarkMetric(ABC):
 
     @abstractmethod
     def compute_metric(self, complexity: list[int], data_mean: list[float], data_std: list[float], baseline_score: float):
+        """
+        Compute the generator metric, results should be in [0, 1], where 0 means perfect generator.
+        """
         pass
 
     @abstractmethod

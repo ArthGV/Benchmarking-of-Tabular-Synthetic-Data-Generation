@@ -1,9 +1,9 @@
-### This framework was created during the ETH ZÜRICH Data Science Lab of Spring 2025.
+# This framework was created during the ETH ZÜRICH Data Science Lab of Spring 2025.
 
 ### Contributors:
-- Artheme Gauthier-Villars
-- Zoé Meier
-- Eduard von Bothmer
+- Artheme Gauthier-Villars - agauthier@ethz.ch
+- Zoé Meier - zomeier@ethz.ch
+- Eduard von Bothmer - evonbothmer@ethz.ch
 
 ### Challenge Giver:
 - Dr. David Froelicher / Swisscom
@@ -67,3 +67,6 @@ We define two main attack settings:
 
 # Installation
 There's two installation scripts, one for the stable base setup covering all the packages for Synthcity, SDV and Reprosyn generators (install_lab_env.sh) and one additionally for privpgd (install_lab_env_privpgd.sh), that sometimes has issues with resolving dependencies depending on the system you're running it from. Unless you're running privpgd generators, please use the install_lab_env.sh script to set up your environment. In case the script doesnt work, please try manual installation of the steps in the exact same order with either micromanba or conda.
+
+# Example
+A example script is avaible : run_pipeline.ipynb
